@@ -38,9 +38,16 @@ pyarrow 21.0.0; deterministic, no randomness, no imputation).
 
 ## 3. Key counts
 
+> **Superseded (2026-09-16):** the "Edges kept (syn_count ≥ 5): 2,700,513 /
+> 34,153,566 synapses" figures describe the OLD thresholded pipeline. The
+> shipped bundle (`rebuild_graph.py`) is paper-faithful and keeps every
+> published neuron-pair edge: **15,090,883 edges / 54,490,417 synapses**
+> (see `stats.json` → `superseded_values_from_thresholded_pipeline`, and
+> `packages/app/public/data/graph-meta.json`).
+
 - Raw (pair × neuropil) connection rows: 16,847,997
 - Unique neuron-pair edges: 15,091,983
-- Edges kept (syn_count ≥ 5): **2,700,513** carrying **34,153,566 synapses**
+- Edges kept (syn_count ≥ 5): **2,700,513** carrying **34,153,566 synapses** *(superseded — see note above)*
 - Proofread root IDs: 139,255
 - Neurons in table (proofread ∩ annotated): **139,243** (137,716 with named cell type)
 - NT prediction coverage: 138,642 / 139,243 neurons (601 without prediction)

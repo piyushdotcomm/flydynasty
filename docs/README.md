@@ -48,8 +48,9 @@ evolution sim + serialized narration.
 4. **Honest framing.** Brains are tiny neural nets "inspired by" biology. NEVER claim
    connectome/real-brain fidelity (avoids the Eon Systems dunk cycle). Marketing copy
    says "artificial fly brains."
-5. **Free forever.** $0/month. Client-side compute. Vercel + Supabase free tiers +
-   GitHub Actions cron.
+5. **Free forever.** $0/month. Client-side compute. GitHub Pages static
+   hosting (the deployed build replays precomputed model data; see
+   `07-DEPLOYMENT.md`).
 6. **Extinction is content.** Near-extinction events and Epoch resets are dramatic
    story moments, not failures.
 7. **Clips > live stream.** The daily auto-generated recap clip ("Yesterday on Fly
@@ -162,7 +163,7 @@ Round 2 (viral content judge, Fly Dynasty): WARN → conditional PASS:
 | `04-VISUAL-TARGET.md` | Quality bar, scene layout, lighting, materials, camera |
 | `05-AGENTS-GUIDE.md` | How AI agents should work in this repo (MANDATORY reading) |
 | `06-ASSETS.md` | 3D models, sources, licenses, conversion pipeline |
-| `07-DEPLOYMENT.md` | Vercel + Supabase + GitHub Actions, $0/month |
+| `07-DEPLOYMENT.md` | GitHub Pages deploy of the static export (see that file for the historical Vercel/Supabase plan) |
 | `08-CONNECTOME-INTEGRATION.md` | Real brain anatomy layer (the 2026 discovery, used honestly) |
 
 **IMPORTANT (user decision D14):** the 2026 fly connectome discovery IS used —

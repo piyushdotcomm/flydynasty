@@ -87,3 +87,4 @@ choice in §5.
 | # | Decision | Rationale |
 |---|---|---|
 | D14 | Connectome used as REAL ANATOMY layer (brain view panel, region names, courtship/escape circuit labels), not as behavior engine | User mandate to use the discovery; honest per council; costs ~MBs not GBs; huge marketing hook with zero debunk risk |
+| D15 | Soma point cloud ships in RAW FlyWire (FAFB14) space; JRC2018U meshes (in `public/assets/brain/`) are NOT shown with it | The FlyWire annotation table's native space is not co-registered with the JRC2018U atlas template; applying an uncited/incorrect transform would misplace real neurons against real anatomy. The bundle marks `positions.notCoRegistered: true` and the About page discloses this. Unblocking requires a cited FAFB14→JRC2018U co-registration (e.g. a published bridging transform); until then the two are never displayed overlaid. |

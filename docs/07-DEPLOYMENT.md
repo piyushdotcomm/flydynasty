@@ -1,16 +1,28 @@
-# 07 — DEPLOYMENT ($0/month, exactly how)
+# 07 — DEPLOYMENT (as shipped)
 
-## 1. Services
+## Current deployment: GitHub Pages (live)
 
-| Service | Tier | Role |
-|---|---|---|
-| Vercel | Hobby (free) | Next.js app hosting, CDN, OG images |
-| Supabase | Free (2 projects) | Postgres: checkpoints, names/lineages, epochs, event log, realtime (guest→host intents) |
-| GitHub Actions | Free (public repo) | Hourly evolution cron, "fossil record" commits, daily recap trigger |
-| Domain | existing or free subdomain | `flydynasty.vercel.app` is fine to start |
+- **URL**: https://piyushdotcomm.github.io/flydynasty/
+- **Method**: Next.js static export (`output: "export"`, `trailingSlash: true`,
+  `basePath: /flydynasty` from `NEXT_PUBLIC_BASE_PATH`) built by
+  `.github/workflows/deploy-pages.yml` on every push to `main`
+- **What ships**: the client app + `packages/app/public/data/` (the real
+  precomputed model bundle: graph-meta.json, neurons.bin, ids.txt,
+  traces-index.json, trace-*.json, gate.json)
+- **Enable Pages once**: Repo → Settings → Pages → Source: "GitHub Actions"
+  (done via API `POST /repos/.../pages {"build_type":"workflow"}`)
 
-NOTE: Supabase free pauses idle projects — but our DB is only touched on visits
-and by cron (hourly), so idle-pause is not an issue (cron counts as activity).
+The site is fully static: no server runtime, no database, no secrets. Model
+experiments are computed offline by `pnpm traces` and committed as data files;
+the browser only replays them.
+
+## Historical plan (NOT implemented)
+
+An earlier plan in these docs described Vercel + Supabase (Postgres
+checkpoints, evolution cron, OG image routes) for a shared "fly dynasty"
+world. That infrastructure was never built and is not part of this app:
+no Supabase client, no cron workflows, no OG routes exist in the repo.
+
 
 ## 2. Supabase schema (migration 001)
 
