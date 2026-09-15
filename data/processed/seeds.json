@@ -1,0 +1,130 @@
+{
+  "groups": [
+    {
+      "name": "sugar_grns",
+      "root_ids": [
+        "720575940624963786",
+        "720575940630233916",
+        "720575940637568838",
+        "720575940617000768",
+        "720575940630797113",
+        "720575940621754367",
+        "720575940632889389",
+        "720575940638202345",
+        "720575940621502051",
+        "720575940640649691",
+        "720575940639332736",
+        "720575940616885538",
+        "720575940639198653",
+        "720575940617937543",
+        "720575940632425919",
+        "720575940633143833",
+        "720575940612670570",
+        "720575940628853239",
+        "720575940629176663",
+        "720575940611875570"
+      ],
+      "evidence": "Labellar sweet/sugar-sensing GRNs, left hemisphere. IDs are exactly those activated computationally in Shiu et al. 2024 (Nature 634:210-219) Fig 1c/d and listed as sugar_l_0..20 in Supplementary Table 1A (and ST4) of the paper (41586_2024_7763_MOESM2_ESM.xlsx, downloaded from https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-024-07763-9/MediaObjects/41586_2024_7763_MOESM2_ESM.xlsx). Engert et al. 2022 (eLife 11:e78110, PMC9170244) identified these as connectivity clusters 4/5 best-matching Gr64f sugar-GRN projections. Cross-check vs Schlegel et al. 2024 annotations: 20/21 present in current table, all cell_type LB3, cell_sub_class sugar/water, side left, top_nt acetylcholine. sugar_l_13 (Shiu ID 720575940620900446) is a superseded FlyWire root ID absent from the current table; updated ID unresolved (candidate set = 27 unmatched left LB3 cells; needs verification)."
+    },
+    {
+      "name": "bitter_grns",
+      "root_ids": [
+        "720575940613061118",
+        "720575940604027168",
+        "720575940646212996",
+        "720575940621008895",
+        "720575940621778381",
+        "720575940622298631",
+        "720575940629146711",
+        "720575940610481370",
+        "720575940602353632",
+        "720575940617094208",
+        "720575940645743412",
+        "720575940614281266",
+        "720575940630195909",
+        "720575940610259370",
+        "720575940627578156",
+        "720575940627692048",
+        "720575940619028208",
+        "720575940626287336",
+        "720575940610483162",
+        "720575940619197093"
+      ],
+      "evidence": "Labellar bitter-sensing (Gr66a) GRNs, left hemisphere. IDs are exactly those activated in Shiu et al. 2024 Fig 3b/d (bitter_l_0..20 in Supplementary Table 4). Engert et al. 2022 identified the corresponding clusters (groups 1 and 2) as best-matching Gr66a bitter-GRN projections. Cross-check vs Schlegel annotations: 20/21 present, all cell_sub_class bitter, cell_types LB1a-d, side left. NOTE: Eckstein NT predictions give several of these as serotonin (not acetylcholine) - flag for model NT choice. bitter_l_15 (Shiu ID 720575940618600651) is a superseded root ID absent from the current table; best candidate by elimination is 720575940619072513 (the only unclaimed left LB1c) - needs verification."
+    },
+    {
+      "name": "water_grns",
+      "root_ids": [
+        "720575940630553415",
+        "720575940622902535",
+        "720575940644965399",
+        "720575940616177458",
+        "720575940606002609",
+        "720575940625861168",
+        "720575940613996959",
+        "720575940631898285",
+        "720575940613786774",
+        "720575940617857694",
+        "720575940660292225",
+        "720575940625203504",
+        "720575940622486922",
+        "720575940612579053",
+        "720575940612950568",
+        "720575940634796536",
+        "720575940629852866",
+        "720575940635172191"
+      ],
+      "evidence": "Labellar water-sensing (ppk28) GRNs, left hemisphere. IDs are exactly those activated in Shiu et al. 2024 (water_l_0..17 in Supplementary Tables 4/5/6A). Engert et al. 2022 identified this cluster (group 6) as best-matching ppk28 water-GRN projections. Cross-check vs Schlegel annotations: 18/18 present in current table; 17 are cell_type LB3 and 1 (water_l_15 = 720575940634796536) is LB2d; all cell_sub_class sugar/water, side left, top_nt acetylcholine. Shui et al. showed sugar and water GRNs converge on largely shared downstream networks (their Fig 4) - both groups are needed to reproduce the sugar/water co-activation experiments."
+    },
+    {
+      "name": "lowsalt_grns",
+      "root_ids": [
+        "720575940614211295",
+        "720575940624079544",
+        "720575940615274425",
+        "720575940626241636",
+        "720575940621375231",
+        "720575940626016017",
+        "720575940638218173",
+        "720575940628198503",
+        "720575940610683315",
+        "720575940631082124",
+        "720575940612920386",
+        "720575940627265265",
+        "720575940619387814",
+        "720575940615089369",
+        "720575940629211607",
+        "720575940624604560",
+        "720575940628832256",
+        "720575940614273292"
+      ],
+      "evidence": "Labellar Ir94e GRNs (4th taste category in Shiu et al. 2024; respond to low salt, Jaeger et al. 2018; Engert et al. 2022 cluster 3 best-matched Ir94e projections). IDs are exactly those activated in Shiu et al. 2024 Fig 3c/e (Ir94e_l_0..17 in Supplementary Table 4). Cross-check vs Schlegel annotations: 18/18 present, split across TWO Schlegel sub-classes - 11 cells typed LB1e under cell_sub_class \"bitter\" and 7 cells (LB2a-b x4, LB2c x3) under cell_sub_class \"low-salt\". I.e. Schlegel \"low-salt\" != Ir94e exactly: 2 left LB4a cells (720575940632293346, 720575940620856046) are in the Schlegel low-salt subclass but NOT in Shiu Ir94e set, while all 11 LB1e \"bitter\"-subclass cells ARE Ir94e. Use this exact 18-cell list (not the Schlegel subclass) to reproduce the Shiu Ir94e experiments."
+    },
+    {
+      "name": "proboscis_mns",
+      "root_ids": [
+        "720575940660219265",
+        "720575940618238523",
+        "720575940627410451",
+        "720575940628826128",
+        "720575940623352063",
+        "720575940612888178",
+        "720575940618165019",
+        "720575940630868793",
+        "720575940630233404",
+        "720575940618539810"
+      ],
+      "evidence": "Proboscis motor neurons responding to sugar GRN activation in Shiu et al. 2024 (their Fig 1c/d: MN6, MN8, MN9, MN11; exact FlyWire IDs from Supplementary Tables 1A/1B/1C/6B). MN9 mapping: MN9_r = 720575940660219265 = Schlegel cell_type CB0701 right (EXACT ID match in Shiu ST1B row 40, ST1C, ST6B; fires strongly with contralateral left-sugar-GRN activation, the key sensorimotor validation experiment). MN9_l = 720575940618238523 = CB0701 left, the PUTATIVE current ID for Shiu MN9_l 720575940645521262, which is a superseded root ID absent from the current table; evidence: CB0701 is a bilateral pair, the right member matches MN9_r exactly, and the left member is the only remaining CB0701 (soma x=115232 mirrors MN9_r x=145856 about the brain midline ~131004, |offsets| 15772 vs 14852 nm). McKellar et al. 2020 (eLife 9:e54978, PMC7316511) define mn9 as the motor neuron of muscle 9 (lateral pharyngeal muscle, rostrum protractor/fulcrum protractor; split-GAL4s VT061715/VT005008; bilateral pair; activation lifts/protracts the rostrum, silencing blocks rostrum+haustellum extension during feeding) - i.e. the \"rostrum-lifting MN\" of the Shiu validation. Other members: MN6 = CB0858 l/r (EXACT), MN8 = CB0911 l/r (EXACT), MN11 = CB0700 l/r (EXACT per Shiu ST1A) + CB0915 r (EXACT) + CB0915 l 720575940618539810 (candidate update for Shiu 4th MN11 ID 720575940619048827, superseded/absent; McKellar mn11 has dorsal and ventral divisions mn11D/mn11V, consistent with 2 bilateral pairs = 4 MN11 neurons)."
+    }
+  ],
+  "needs_verification": [
+    "sugar_l_13: Shiu root ID 720575940620900446 is superseded and absent from the current neuron table. Tried: FlyWire chunkedgraph API (/_segmentation/api/v1/latest/root/<id>) via flywire-drosophila-v1-manc and prod.flywire.ai - both unreachable from this environment (SSL EOF). Candidate set by elimination: the 27 left-hemisphere LB3 cells not claimed by other Shiu sugar/water IDs (all have NaN soma coords in the table). Action: resolve in FlyWire UI/caveclient, or run model with the 20 verified sugar GRNs (Shiu analyses are robust to single-GRN dropout at >=50 Hz activation).",
+    "bitter_l_15: Shiu root ID 720575940618600651 is superseded and absent. Best elimination candidate: 720575940619072513 (only unclaimed left LB1c). Verify via FlyWire.",
+    "MN9_l: Shiu root ID 720575940645521262 is superseded and absent. Putative update: 720575940618238523 (CB0701 left, only remaining member of the CB0701 pair whose right member exactly matches MN9_r). Verify via FlyWire before relying on MN9_l results; MN9_r (720575940660219265) is EXACT and sufficient for the contralateral-activation experiments (left GRNs -> right MN9).",
+    "MN11 4th member: Shiu ID 720575940619048827 is superseded and absent. Candidate: 720575940618539810 (CB0915 left). Verify via FlyWire.",
+    "NT override check: Eckstein NT predictions assign serotonin to several bitter GRNs (bitter_l_2/4/7/11/14/19) and glutamate to 2 Ir94e cells (Ir94e_l_12/16) and MN11 CB0700 right. Shiu et al. used the full Eckstein predictions in their model, so keep table top_nt/top_nt_conf as-is for replication, but note GRN canonical identity is cholinergic sensory.",
+    "Schlegel low-salt subclass vs Shiu Ir94e: the 2 left LB4a cells (720575940632293346, 720575940620856046) are low-salt-annotated but NOT in the Shiu Ir94e set - exclude them from the lowsalt_grns seed group (already done).",
+    "claw_tpGRN (60) and dorsal_tpGRN (11) cell types (taste peg GRNs) are NOT part of the Shiu labellar GRN validation - they innervate taste pegs, not labellar bristles; excluded from all seed groups.",
+    "All Shiu GRN IDs are LEFT-hemisphere neurons (Engert reconstruction side). For bilateral activation experiments, mirror-lookup the right-hemisphere homologues (matched by cell_type within the sugar/water/bitter sub-classes) or use hemisphere-symmetric connectivity."
+  ]
+}

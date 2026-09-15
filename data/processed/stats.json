@@ -1,0 +1,38 @@
+{
+  "source_version": "FlyWire release 783",
+  "synapse_count_threshold": 5,
+  "raw_pair_neuropil_rows": 16847997,
+  "unique_neuron_pair_edges": 15091983,
+  "edges_ge_threshold": 2700513,
+  "total_synapses_on_kept_edges": 34153566,
+  "proofread_root_ids": 139255,
+  "annotation_rows": 139248,
+  "neurons_in_table": 139243,
+  "neurons_with_nt_prediction": 138642,
+  "neurons_with_nt_sign": 138642,
+  "neurons_without_nt": 601,
+  "neurons_with_gt_nt_for_cell_type": 81972,
+  "top_nt_distribution": {
+    "acetylcholine": 86192,
+    "glutamate": 24873,
+    "gaba": 19171,
+    "dopamine": 5909,
+    "serotonin": 2281,
+    "nan": 601,
+    "octopamine": 216
+  },
+  "kept_edge_pre_nt_distribution": {
+    "ACh": 1581748,
+    "GABA": 621721,
+    "Glut": 448226,
+    "Serotonin": 22633,
+    "Dopamine": 16499,
+    "Octopamine": 9686
+  },
+  "gaps": [
+    "edges below syn_count 5 dropped (keep-threshold policy): 12391470",
+    "neurons in proofread_root_ids without Schlegel annotation row: 12",
+    "neurons without Eckstein top_nt prediction: 601",
+    "per-edge NT probs are unweighted means across neuropil rows, not synapse-weighted (approximation)"
+  ]
+}
