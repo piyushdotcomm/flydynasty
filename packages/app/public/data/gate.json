@@ -1,6 +1,6 @@
 {
  "formatVersion": 1,
- "generated": "2026-09-15T19:14:25.051Z",
+ "generated": "2026-09-15T21:24:23.911Z",
  "model": {
   "paper": "Shiu et al. 2024, Nature 634, 210–219 (doi:10.1038/s41586-024-07763-9)",
   "dtMs": 0.1,
@@ -19,14 +19,38 @@
    "shuffledSyns": 15090883
   }
  },
- "complete": false,
- "passed": 1,
- "total": 1,
+ "complete": true,
+ "passed": 5,
+ "total": 5,
  "checks": [
   {
    "id": "baseline-silent",
    "claim": "With no stimulus the network stays silent (paper: baseline firing rate 0 Hz).",
    "observed": "0 spikes across 5 trials; 0 neurons responded.",
+   "pass": true
+  },
+  {
+   "id": "sugar-to-mn9",
+   "claim": "Sugar GRNs @ 100 Hz activate MN9_r in every trial (paper Fig 1c: robust in 100% of simulations).",
+   "observed": "MN9_r mean 86.4 Hz, fired in 30/30 trials; 9456 neurons responded overall.",
+   "pass": true
+  },
+  {
+   "id": "bitter-suppression",
+   "claim": "Bitter co-activation suppresses sugar-driven MN9 output (paper Fig 3).",
+   "observed": "MN9_r: sugar-only 86.4 Hz vs sugar+bitter 15.8 Hz.",
+   "pass": true
+  },
+  {
+   "id": "shuffled-control",
+   "claim": "Shuffled connectivity fails to activate MN9 (paper Methods: 99/100 shuffles fail).",
+   "observed": "MN9_r mean 0 Hz across 5 trials on the weight-shuffled graph.",
+   "pass": true
+  },
+  {
+   "id": "silencing-changes-output",
+   "claim": "Removing proboscis motor neurons changes the proboscis readouts (ablation sanity check).",
+   "observed": "MN9_r: intact 86.4 Hz vs silenced 104 Hz.",
    "pass": true
   }
  ]
