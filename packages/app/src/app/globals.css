@@ -28,10 +28,16 @@ body {
 }
 
 @keyframes loader-bar {
-  from {
-    transform: scaleX(0);
+  0% {
+    transform: translateX(-100%);
   }
-  to {
-    transform: scaleX(1);
+  100% {
+    transform: translateX(100%);
   }
+}
+
+/* indeterminate loading bar (real loading state, unknown duration) */
+.loader-bar {
+  width: 100%;
+  animation: loader-bar 1.4s ease-in-out infinite;
 }

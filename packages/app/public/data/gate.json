@@ -1,0 +1,33 @@
+{
+ "formatVersion": 1,
+ "generated": "2026-09-15T19:14:25.051Z",
+ "model": {
+  "paper": "Shiu et al. 2024, Nature 634, 210–219 (doi:10.1038/s41586-024-07763-9)",
+  "dtMs": 0.1,
+  "wSynMv": 0.275,
+  "tMbrMs": 20,
+  "tauSynMs": 5,
+  "tDelayMs": 1.8,
+  "refractoryMs": 2.2,
+  "vRestingMv": -52,
+  "vThresholdMv": -45,
+  "stimulusInput": "poisson",
+  "rng": "mulberry32(0xC0FFEE ^ trial)",
+  "graph": {
+   "n_neurons": 139248,
+   "n_edges": 15090883,
+   "shuffledSyns": 15090883
+  }
+ },
+ "complete": false,
+ "passed": 1,
+ "total": 1,
+ "checks": [
+  {
+   "id": "baseline-silent",
+   "claim": "With no stimulus the network stays silent (paper: baseline firing rate 0 Hz).",
+   "observed": "0 spikes across 5 trials; 0 neurons responded.",
+   "pass": true
+  }
+ ]
+}

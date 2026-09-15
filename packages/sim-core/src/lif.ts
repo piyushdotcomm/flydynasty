@@ -28,8 +28,25 @@ export function mulberry32(seed: number): () => number {
 }
 
 export interface Stimulus {
-  rootIds: number[]
+  /** root IDs as exact decimal strings (never numbers — see graph.ts) */
+  rootIds: string[]
   rateHz: number
+}
+
+/** Options for a single trial. Everything optional: defaults reproduce the paper. */
+export interface RunOptions {
+  /**
+   * Ablation: root IDs whose OUTGOING synapses are removed from the trial
+   * (equivalent to silencing the neuron's drive; the paper's silencing
+   * experiments). Neurons can still be stimulated, they just cannot drive
+   * anything downstream.
+   */
+  silence?: string[]
+  /**
+   * Spike recorder. Called with (node index, global step) for every spike the
+   * simulator generates, used to build activity rasters for the browser traces.
+   */
+  onSpike?: (idx: number, step: number) => void
 }
 
 export interface SimResult {
@@ -38,12 +55,12 @@ export interface SimResult {
   /** firing rate (Hz) per node over the whole run */
   rates: Float32Array
   /** nodes that spiked at least once, with counts, sorted desc */
-  responding: Array<{ idx: number; rootId: number; type: string; spikes: number; rateHz: number }>
+  responding: Array<{ idx: number; rootId: string; type: string; spikes: number; rateHz: number }>
   durationMs: number
   totalSpikes: number
 }
 
-const DT_MS = 0.1 // timestep; paper used Brian2 (default 0.1 ms). Documented choice.
+export const DT_MS = 0.1 // timestep; paper used Brian2 (default 0.1 ms). Documented choice.
 const DELAY_STEPS = Math.round(T_DLY_MS / DT_MS)
 const REFRAC_STEPS = Math.round(T_REFRACTORY_MS / DT_MS)
 
@@ -52,6 +69,19 @@ export class LIFSim {
   v: Float32Array
   g: Float32Array
   lastSpikeStep: Int32Array
+  /**
+   * Stimulus coverage of the most recent run(): how many of the requested root
+   * IDs actually resolved to a node index. A non-zero `missing` means the
+   * stimulus silently lost neurons (bad ID, or an ID-precision bug), which
+   * would change the model result without raising an error.
+   */
+  lastStimulusCoverage: Array<{ requested: number; stimulated: number; missing: number }> = []
+  /** node indices whose outgoing synapses are removed for the current trial */
+  private silenced = new Set<number>()
+  /** spike recorder for the current trial (rasters for browser traces) */
+  private onSpike: ((idx: number, step: number) => void) | null = null
+  /** node indices that were driven by the stimulus in the current trial */
+  stimulatedIdx: number[] = []
   /** ring buffer of pending synaptic events: per step, list of (dst, w) */
   private events: Array<Array<[number, number]>>
   private step = 0
@@ -77,21 +107,37 @@ export class LIFSim {
    * Run one trial. Poisson stimulus on given root IDs at rateHz
    * (paper Methods: Poisson-distributed input, 30 trials x 1000 ms).
    */
-  run(stimuli: Stimulus[], durationMs = TRIAL_MS, trial = 0): SimResult {
+  run(stimuli: Stimulus[], durationMs = TRIAL_MS, trial = 0, opts: RunOptions = {}): SimResult {
     this.reset()
     const c = this.c
+    // ablation + recording for this trial
+    this.silenced.clear()
+    this.stimulatedIdx = []
+    for (const id of opts.silence ?? []) {
+      const i = c.idToIdx.get(id)
+      if (i !== undefined) this.silenced.add(i)
+    }
+    this.onSpike = opts.onSpike ?? null
     const nSteps = Math.round(durationMs / DT_MS)
     const spikeCounts = new Int32Array(c.n)
     // Poisson firing probability per step for each stimulated set
-    const stimNodes: Array<{ idxs: number[]; pPerStep: number }> = []
+    const stimNodes: Array<{ idxs: number[]; pPerStep: number; missing: number }> = []
     for (let s = 0; s < stimuli.length; s++) {
       const idxs: number[] = []
+      let missing = 0
       for (const r of stimuli[s].rootIds) {
         const i = c.idToIdx.get(r)
-        if (i !== undefined) idxs.push(i)
+        if (i === undefined) missing++
+        else idxs.push(i)
       }
-      stimNodes.push({ idxs, pPerStep: (stimuli[s].rateHz * DT_MS) / 1000 })
+      stimNodes.push({ idxs, pPerStep: (stimuli[s].rateHz * DT_MS) / 1000, missing })
     }
+    this.lastStimulusCoverage = stimNodes.map((s, i) => ({
+      requested: stimuli[i].rootIds.length,
+      stimulated: s.idxs.length,
+      missing: s.missing,
+    }))
+    this.stimulatedIdx = stimNodes.flatMap((s) => s.idxs)
     const rng = mulberry32(0xC0FFEE ^ trial)
     const cur = this.step
     let totalSpikes = 0
@@ -135,11 +181,8 @@ export class LIFSim {
           this.g[i] = gv
           spikeCounts[i]++
           totalSpikes++
-          // schedule out-edges at delay
-          const fireStep = globalStep + DELAY_STEPS
-          const evq = this.events[fireStep % evLen]
-          const o0 = c.off[i], o1 = c.off[i + 1]
-          for (let o = o0; o < o1; o++) evq.push([c.dst[o], c.w[o]] as [number, number])
+          this.onSpike?.(i, globalStep)
+          this.scheduleOut(i, globalStep)
         } else {
           this.v[i] = vv
         }
@@ -151,7 +194,7 @@ export class LIFSim {
     for (let i = 0; i < c.n; i++) {
       if (spikeCounts[i] > 0) {
         rates[i] = spikeCounts[i] / secs
-        responding.push({ idx: i, rootId: c.ids[i] as unknown as number, type: c.type[i], spikes: spikeCounts[i], rateHz: spikeCounts[i] / secs })
+        responding.push({ idx: i, rootId: c.ids[i], type: c.type[i], spikes: spikeCounts[i], rateHz: spikeCounts[i] / secs })
       }
     }
     responding.sort((a, b) => b.spikes - a.spikes)
@@ -159,13 +202,23 @@ export class LIFSim {
   }
 
   private injectSpike(i: number, globalStep: number): void {
-    // stimulus spike: same dynamics as endogenous spike
+    // driven (stimulus) spike: same dynamics as an endogenous spike
     if (globalStep - this.lastSpikeStep[i] < REFRAC_STEPS) return
     this.lastSpikeStep[i] = globalStep
     this.v[i] = V_RESET_MV
+    this.onSpike?.(i, globalStep)
+    this.scheduleOut(i, globalStep)
+  }
+
+  /**
+   * Schedule a spike's outgoing synaptic events (T_dly later), honouring the
+   * current trial's silenced set. Shared by endogenous and driven spikes.
+   * The excitatory/inhibitory sign is already baked into c.w.
+   */
+  private scheduleOut(i: number, globalStep: number): void {
+    if (this.silenced.has(i)) return
     const c = this.c
-    const fireStep = globalStep + DELAY_STEPS
-    const evq = this.events[fireStep % this.events.length]
+    const evq = this.events[(globalStep + DELAY_STEPS) % this.events.length]
     const o0 = c.off[i], o1 = c.off[i + 1]
     for (let o = o0; o < o1; o++) evq.push([c.dst[o], c.w[o]] as [number, number])
   }

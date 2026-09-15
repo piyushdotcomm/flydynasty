@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import GateChecks from "@/components/GateChecks";
 
 export const metadata: Metadata = {
   title: "About & Methodology — Real Fly Lab",
@@ -37,34 +38,40 @@ const HONESTY_TABLE: {
       "Leaky integrate-and-fire simulation from Shiu et al., Nature 2024 — the only free parameter is W_syn; everything else comes from published Drosophila electrophysiology.",
   },
   {
-    thing: "Behavior predictions (sugar → feeding, bitter suppression, grooming)",
+    thing: "Behavior predictions (sugar → feeding motor neurons)",
     status: "REAL",
     detail:
-      "Model matched real optogenetic activation phenotypes at >90% accuracy across 106 cell types. Shuffled-connectivity controls abolish predictions.",
+      "The published model predicted the phenotypes of real optogenetic activation experiments at 90% (feeding), 81% (grooming) and 78% (locomotion) accuracy (Shiu et al. 2024, abstract). This build replays the feeding experiment and its controls.",
   },
   {
-    thing: "Brain anatomy (3D meshes)",
-    status: "REAL",
+    thing: "Shuffled-connectivity control",
+    status: "REAL (run here)",
     detail:
-      "Neuropil meshes from Virtual Fly Brain (JRC2018U template) — real anatomy, no invented shapes.",
+      "Permuting per-edge synapse counts while keeping topology and signs: the paper found 99/100 shuffles fail to activate MN9; our own shuffled run is exported and shown in the experiment dock.",
+  },
+  {
+    thing: "Atlas co-registered 3D anatomy (neuropil meshes)",
+    status: "NOT IN THIS BUILD",
+    detail:
+      "The annotated soma coordinates are in raw FlyWire (FAFB14) space, which is NOT co-registered with atlas templates such as JRC2018U. Rather than warp them without a cited transform, this build shows the real neuron point cloud only.",
   },
   {
     thing: "Fly body, environment, lighting",
-    status: "SIMULATED (presentation only)",
+    status: "NOT IN THIS BUILD",
     detail:
-      "Photoreal fly body (TuragaLab flybody, Apache-2.0), HDRIs (Poly Haven, CC0), textures (ambientCG, CC0). These visualize model output; they never drive it.",
+      "No photoreal fly body or stage assets ship here — the visualization is the point cloud and the model readouts. Nothing decorative is presented as science.",
   },
   {
     thing: "Free-roaming autonomous fly behavior",
     status: "NOT CLAIMED",
     detail:
-      "No published model validates open-ended fly life simulation. Body animations here are visualizations of validated circuit outputs only — never presented as emergent behavior.",
+      "No published model validates open-ended fly life simulation, and none is presented here.",
   },
   {
     thing: "Interactive what-if simulations",
-    status: "APPROXIMATION (labeled)",
+    status: "PRECOMPUTED (labeled)",
     detail:
-      "Activating arbitrary neurons simulates only the recruited subgraph live. Full-model precomputed runs are shown when available; approximation quality is displayed, not hidden.",
+      "Experiments are full-model runs (all 139,248 neurons) computed offline with exact string root IDs; the browser replays them. It does not live-simulate, and it says so.",
   },
 ];
 
@@ -90,26 +97,19 @@ const SOURCES: { citation: string; role: string }[] = [
     role: "Neurotransmitter predictions: determines whether each connection is excitatory or inhibitory.",
   },
   {
-    citation: "Virtual Fly Brain — JRC2018U neuropil meshes (virtualflybrain.org).",
-    role: "3D brain region anatomy for the visualizer.",
-  },
-  {
-    citation: "TuragaLab flybody (Apache-2.0).",
-    role: "Photorealistic fly body model.",
-  },
-  {
-    citation: "Poly Haven (CC0) — HDRI environments; ambientCG (CC0) — PBR textures.",
-    role: "Lighting and materials for the lab stage.",
+    citation:
+      "FlyWire Consortium. Whole-brain connectome data, release 783 (Zenodo record 10676866), CC-BY-4.0.",
+    role: "Source of the bundled connectome, annotations and soma coordinates.",
   },
 ];
 
 function StatusBadge({ status }: { status: string }) {
   const tone =
-    status === "REAL"
+    status.startsWith("REAL")
       ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-      : status === "SIMULATED (presentation only)" || status === "APPROXIMATION (labeled)"
+      : status === "PRECOMPUTED (labeled)"
         ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
-        : "border-red-500/40 bg-red-500/10 text-red-400";
+        : "border-zinc-500/40 bg-zinc-500/10 text-zinc-400";
   return (
     <span
       className={`inline-block whitespace-nowrap rounded border px-2 py-0.5 text-[11px] font-medium tracking-wide ${tone}`}
@@ -160,12 +160,15 @@ export default function AboutPage() {
             validated against real experiments
           </span>
           : activating sugar-sensing neurons predicted the real feeding motor
-          neurons, matching actual optogenetic activation phenotypes at{" "}
-          <span className="text-foreground">over 90% accuracy</span> across 106
-          cell types. Shuffling the connectivity destroys the predictions —
-          proof that it is the real wiring doing the work. When you press
-          “Sugar” in the experiment dock, you are replaying that experiment on
-          the real connectome.
+          neurons; the published model matched actual optogenetic activation
+          phenotypes at{" "}
+          <span className="text-foreground">
+            90% (feeding), 81% (grooming) and 78% (locomotion)
+          </span>{" "}
+          accuracy (paper abstract). Shuffling the connectivity destroys the
+          predictions — proof that it is the real wiring doing the work. When
+          you press “Sugar” in the experiment dock, you are replaying that
+          experiment on the real connectome.
         </p>
       </section>
 
@@ -239,21 +242,29 @@ export default function AboutPage() {
 
       <section className="mt-12 space-y-4">
         <h2 className="text-xl font-semibold text-amber-500">
-          Visual assets &amp; licensing
+          Reproducibility gate
         </h2>
         <p className="leading-relaxed text-neutral-300">
-          The stage around the science uses open assets, clearly separated from
-          the data: brain region meshes come from{" "}
-          <span className="text-foreground">
-            Virtual Fly Brain (JRC2018U template)
-          </span>
-          , the photorealistic fly body from{" "}
-          <span className="text-foreground">
-            TuragaLab&rsquo;s flybody (Apache-2.0)
-          </span>
-          , HDRIs from <span className="text-foreground">Poly Haven (CC0)</span>{" "}
-          and PBR textures from{" "}
-          <span className="text-foreground">ambientCG (CC0)</span>.
+          Every exported model run must pass a battery of checks against the
+          paper before it ships. These are the actual results from the latest
+          export (<code>gate.json</code>) — including any failures.
+        </p>
+        <GateChecks />
+      </section>
+
+      <section className="mt-12 space-y-4">
+        <h2 className="text-xl font-semibold text-amber-500">
+          Data &amp; licensing
+        </h2>
+        <p className="leading-relaxed text-neutral-300">
+          The connectome bundle, annotations and neurotransmitter signs are
+          derived from the FlyWire release 783 data (Zenodo record 10676866)
+          under{" "}
+          <span className="text-foreground">CC-BY-4.0</span>, with citations to
+          the primary papers above. Soma coordinates are shown in the raw
+          FlyWire (FAFB14) volume space and are explicitly{" "}
+          <span className="text-foreground">not co-registered</span> to atlas
+          templates — see <code>graph-meta.json</code> in the open data bundle.
         </p>
       </section>
 

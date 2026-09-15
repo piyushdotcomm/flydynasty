@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Real Fly Lab — the real fruit fly brain",
   description:
-    "An interactive lab running a published, experimentally validated model of the real fruit fly brain: 139,243 FlyWire neurons, leaky integrate-and-fire dynamics, and taste stimuli that reproduce real optogenetic predictions (Shiu et al., Nature 2024).",
+    "An interactive lab running a published model of the real fruit fly brain: all 139,248 FlyWire neurons at their real positions, the Shiu et al. 2024 leaky integrate-and-fire model, and precomputed taste-stimulus experiments you can inspect — including the paper checks.",
   icons: {
     icon: [
       {

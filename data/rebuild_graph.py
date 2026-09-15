@@ -10,6 +10,14 @@ Fixes over the first ETL pass:
    fly glutamate is inhibitory at CNS synapses).
 3. NaN-safe serialization (allow_nan=False).
 4. seeds.json root IDs as integers (string IDs broke joins).
+5. Root IDs are emitted as STRINGS. FlyWire root IDs are ~7.2e17, above
+   Number.MAX_SAFE_INTEGER (9.007e15), so JavaScript/JSON.parse rounds them:
+   measured on this bundle, 139,248 IDs collapsed to 110,654 distinct
+   doubles (23,748 collision buckets, 28,594 neurons shadowed, worst bucket
+   6 IDs) and 28 of the 86 Shiu seed IDs sat in a colliding bucket, so
+   idToIdx lookups could return a neighbouring neuron. Strings are exact.
+   seed-index-truth.json is written alongside so the TypeScript side can
+   cross-check its own index lookups against these exact Python indices.
 
 Sources: Zenodo 10676866 (connections, CC-BY-4.0),
 Schlegel et al. 2024 annotations TSV, Eckstein et al. 2024 top_nt.
@@ -88,7 +96,8 @@ pkg = {
     'sub': [cl(sub_map.get(int(r))) for r in ids],
     'sup': [cl(sup_map.get(int(r))) for r in ids],
     'nt': [cl(nt_map.get(int(r))) for r in ids],
-    'ids': ids.tolist(),
+    # exact decimal strings: root IDs exceed JS Number.MAX_SAFE_INTEGER
+    'ids': [str(int(r)) for r in ids],
 }
 out_path = os.path.join(OUT, 'connectome-graph.json.gz')
 with gzip.open(out_path, 'wt') as f:
@@ -97,3 +106,31 @@ with gzip.open(out_path, 'wt') as f:
 print('neurons:', n, 'edges:', len(pre), 'total synapses:', int(syn.sum()))
 print('sign dist: exc', int((sgn > 0).sum()), 'inh', int((sgn < 0).sum()), 'unknown', int((sgn == 0).sum()))
 print('gz size MB:', round(os.path.getsize(out_path) / 1e6, 1))
+
+# ---------------------------------------------------------------------------
+# Seed index truth: exact (Python) node index for every Shiu et al. 2024 seed
+# root ID. The TypeScript sim looks IDs up in a string-keyed map; verify.ts
+# compares its lookups against this file, so an ID-precision regression (or a
+# STIMULUS that silently hits the wrong neuron) fails loudly instead of
+# quietly changing the model's result.
+# ---------------------------------------------------------------------------
+seed_path = os.path.join(OUT, 'seeds.json')
+if os.path.exists(seed_path):
+    with open(seed_path) as fh:
+        seeds = json.load(fh)
+    truth = {}
+    missing = []
+    for grp in seeds.get('groups', []):
+        for rid in grp['root_ids']:
+            key = str(int(rid))
+            i = idx.get(int(rid))
+            if i is None:
+                missing.append({'group': grp['name'], 'root_id': key})
+            else:
+                truth[key] = {'index': int(i), 'group': grp['name']}
+    with open(os.path.join(OUT, 'seed-index-truth.json'), 'w') as fh:
+        json.dump({'n_seeds': len(truth), 'n_missing': len(missing),
+                   'missing': missing, 'index': truth}, fh, indent=1)
+    print('seed-index-truth.json:', len(truth), 'seeds resolved;', len(missing), 'missing')
+    if missing:
+        print('MISSING SEED IDS:', missing)

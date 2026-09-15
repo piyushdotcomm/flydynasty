@@ -2,64 +2,82 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { buildBrainPoints, type BrainPoints } from "@/lib/brain-points";
+import { useLabStore } from "@/lib/store";
 
+/**
+ * The real brain: a point cloud of all 139,248 FlyWire neurons at their
+ * annotated soma coordinates (FlyWire/FAFB14 nm — see graph-meta.json for the
+ * honest coordinate-space note). Drag to orbit, wheel to zoom.
+ */
 export default function SceneCanvas() {
   const mountRef = useRef<HTMLDivElement>(null);
+  const setPhase = useLabStore((s) => s.setPhase);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    let raf = 0;
+    let disposed = false;
+    let brain: BrainPoints | null = null;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x050507);
-
-    const camera = new THREE.PerspectiveCamera(
-      50,
-      mount.clientWidth / mount.clientHeight,
-      0.1,
-      200,
-    );
-    camera.position.set(2.2, 1.6, 3.2);
-    camera.lookAt(0, 0, 0);
-
+    const camera = new THREE.PerspectiveCamera(50, mount.clientWidth / mount.clientHeight, 100, 500000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x050507, 1);
     mount.appendChild(renderer.domElement);
 
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x7c2d12,
-      roughness: 0.45,
-      metalness: 0.1,
-    });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+    const controls = {
+      theta: 0.6, phi: 1.15, dist: 300000, target: new THREE.Vector3(),
+      dragging: false, lx: 0, ly: 0,
+    };
+    const onDown = (e: PointerEvent) => { controls.dragging = true; controls.lx = e.clientX; controls.ly = e.clientY; };
+    const onMove = (e: PointerEvent) => {
+      if (!controls.dragging) return;
+      controls.theta -= (e.clientX - controls.lx) * 0.005;
+      controls.phi = Math.min(Math.PI - 0.05, Math.max(0.05, controls.phi - (e.clientY - controls.ly) * 0.005));
+      controls.lx = e.clientX; controls.ly = e.clientY;
+    };
+    const onUp = () => { controls.dragging = false; };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      controls.dist = Math.min(700000, Math.max(50000, controls.dist * (1 + Math.sign(e.deltaY) * 0.12)));
+    };
+    mount.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    mount.addEventListener("wheel", onWheel, { passive: false });
 
-    const wire = new THREE.LineSegments(
-      new THREE.EdgesGeometry(geometry),
-      new THREE.LineBasicMaterial({ color: 0xf59e0b }),
-    );
-    cube.add(wire);
+    const applyCamera = () => {
+      const { theta, phi, dist, target } = controls;
+      camera.position.set(
+        target.x + dist * Math.sin(phi) * Math.sin(theta),
+        target.y + dist * Math.cos(phi),
+        target.z + dist * Math.sin(phi) * Math.cos(theta),
+      );
+      camera.lookAt(target);
+    };
+    applyCamera();
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+    (async () => {
+      try {
+        brain = await buildBrainPoints();
+        if (disposed) return;
+        // positions are already centred on the annotated centroid -> orbit origin
+        controls.target.set(0, 0, 0);
+        scene.add(brain.points);
+        setPhase("ready");
+      } catch (err) {
+        if (!disposed) setPhase("error", String((err as Error)?.message ?? err));
+      }
+    })();
 
-    const keyLight = new THREE.DirectionalLight(0xffd9a0, 2.2);
-    keyLight.position.set(3, 4, 2);
-    scene.add(keyLight);
-
-    const rimLight = new THREE.DirectionalLight(0x3b82f6, 0.8);
-    rimLight.position.set(-3, 2, -2);
-    scene.add(rimLight);
-
-    let frame = 0;
-    let raf = 0;
     const animate = () => {
-      frame += 1;
-      cube.rotation.y = frame * 0.004;
-      cube.rotation.x = Math.sin(frame * 0.01) * 0.15;
-      cube.position.y = Math.sin(frame * 0.02) * 0.08;
+      if (!controls.dragging) controls.theta += 0.0008;
+      applyCamera();
       renderer.render(scene, camera);
       raf = requestAnimationFrame(animate);
     };
@@ -75,22 +93,24 @@ export default function SceneCanvas() {
     resizeObserver.observe(mount);
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
+      mount.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      mount.removeEventListener("wheel", onWheel);
+      brain?.dispose();
       renderer.dispose();
-      geometry.dispose();
-      material.dispose();
-      wire.geometry.dispose();
-      (wire.material as THREE.Material).dispose();
       mount.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [setPhase]);
 
   return (
     <div
       id="scene-canvas"
       ref={mountRef}
-      aria-label="3D scene"
+      aria-label="3D view of the FlyWire connectome: every neuron at its real annotated soma position"
       className="absolute inset-0 h-full w-full"
     />
   );

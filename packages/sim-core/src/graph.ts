@@ -16,7 +16,17 @@ export interface RawGraph {
   post: number[]
   syn: number[]
   sign: number[]
-  ids: number[]
+  /**
+   * Root IDs as exact decimal STRINGS.
+   *
+   * FlyWire root IDs are ~7.2e17, above Number.MAX_SAFE_INTEGER (9.007e15), so
+   * a JSON number is rounded on parse: on this bundle 139,248 IDs collapsed to
+   * 110,654 distinct doubles (23,748 collision buckets, 28,594 neurons
+   * shadowed, worst bucket 6 IDs) and 28 of the 86 Shiu et al. 2024 seed IDs
+   * fell in a colliding bucket — an idToIdx lookup could return a *neighbouring*
+   * neuron without any error. See data/rebuild_graph.py and src/verify.ts.
+   */
+  ids: string[]
   soma: number[]
   soma_y: number[]
   soma_z: number[]
@@ -35,8 +45,9 @@ export interface Connectome {
   dst: Int32Array
   /** weight per out-edge in mV (signed) */
   w: Float32Array
-  ids: Float64Array
-  idToIdx: Map<number, number>
+  /** exact root ID per node (string, never rounded) */
+  ids: string[]
+  idToIdx: Map<string, number>
   type: string[]
   cls: string[]
   sub: string[]
@@ -48,6 +59,14 @@ export interface Connectome {
 
 export function parseGraph(raw: RawGraph): Connectome {
   const n = raw.n_neurons
+  if (typeof raw.ids[0] !== 'string') {
+    // Fail loud. Numeric root IDs above 2^53 are silently rounded by
+    // JSON.parse, which makes idToIdx map lookups land on the wrong neuron.
+    throw new Error(
+      'graph bundle ids must be decimal strings (root IDs exceed Number.MAX_SAFE_INTEGER); ' +
+        'rebuild with data/rebuild_graph.py',
+    )
+  }
   const off = new Int32Array(n + 1)
   const E = raw.n_edges
   // count out-degree
@@ -64,14 +83,14 @@ export function parseGraph(raw: RawGraph): Connectome {
     // Paper Methods: w_j,i = synapse_count_j->i * sign_j * W_SYN
     w[c] = raw.syn[e] * raw.sign[e] * W_SYN_MV
   }
-  const idToIdx = new Map<number, number>()
+  const idToIdx = new Map<string, number>()
   for (let i = 0; i < n; i++) idToIdx.set(raw.ids[i], i)
   return {
     n,
     off,
     dst,
     w,
-    ids: Float64Array.from(raw.ids),
+    ids: raw.ids,
     idToIdx,
     type: raw.type,
     cls: raw.cls,
@@ -89,7 +108,7 @@ export function loadGraphFromGzFile(path: string): Connectome {
   return parseGraph(JSON.parse(json) as RawGraph)
 }
 
-export function rootIdsToIdxs(c: Connectome, rootIds: number[]): number[] {
+export function rootIdsToIdxs(c: Connectome, rootIds: string[]): number[] {
   const out: number[] = []
   for (const r of rootIds) {
     const i = c.idToIdx.get(r)

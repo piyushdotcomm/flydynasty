@@ -8,7 +8,8 @@
   "scripts": {
     "test": "vitest run",
     "build": "tsc -p tsconfig.json",
-    "bench": "tsx src/bench.ts"
+    "bench": "tsx src/bench.ts",
+    "verify": "tsx src/verify.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -31,7 +31,7 @@ function graph(): Connectome {
 }
 
 interface Seeds {
-  groups: Array<{ name: string; root_ids: number[] }>
+  groups: Array<{ name: string; root_ids: (number | string)[] }>
 }
 let _s: Seeds | null = null
 function seeds(): Seeds {
@@ -39,14 +39,16 @@ function seeds(): Seeds {
   return _s
 }
 
-function idsOf(name: string): number[] {
+function idsOf(name: string): string[] {
   const g = seeds().groups.find((x) => x.name === name)
   if (!g) throw new Error(`seed group ${name} missing`)
-  return g.root_ids
+  // root IDs are exact decimals (7.2e17 > Number.MAX_SAFE_INTEGER): stringify
+  // them and let the graph's string-keyed index map resolve them exactly.
+  return g.root_ids.map(String)
 }
 
-const MN9_R = 720575940660219265
-const MN9_L = 720575940618238523
+const MN9_R = '720575940660219265'
+const MN9_L = '720575940618238523'
 const TRIAL_MS = 1000
 
 // Paper: 30 trials per experiment (Methods). We run 5 in CI for time.
@@ -54,20 +56,24 @@ const N_TRIALS_CI = 5
 
 function runExperiment(
   c: Connectome,
-  stimuli: Array<{ rootIds: number[]; rateHz: number }>,
+  stimuli: Array<{ rootIds: string[]; rateHz: number }>,
   trials: number,
-): { mn9rRates: number[]; mn9lRates: number[] } {
+): { mn9rRates: number[]; mn9lRates: number[]; missing: number } {
   const sim = new LIFSim(c)
   const mn9rRates: number[] = []
   const mn9lRates: number[] = []
+  let missing = 0
   for (let t = 0; t < trials; t++) {
     const res = sim.run(stimuli, TRIAL_MS, t)
+    // A stimulus that fails to resolve to node indices would silently change
+    // the model result: record and assert it below.
+    for (const cov of sim.lastStimulusCoverage) missing += cov.missing
     const ir = c.idToIdx.get(MN9_R)!
     const il = c.idToIdx.get(MN9_L)!
     mn9rRates.push(res.rates[ir])
     mn9lRates.push(res.rates[il])
   }
-  return { mn9rRates, mn9lRates }
+  return { mn9rRates, mn9lRates, missing }
 }
 
 describe('Shiu et al. 2024 reproduction gate', () => {
@@ -76,11 +82,16 @@ describe('Shiu et al. 2024 reproduction gate', () => {
     () => {
       const c = graph()
       // sugar_l group is LEFT hemisphere (Shiu ST1A). Left sugar → RIGHT MN9 stronger (paper Fig 1c).
-      const { mn9rRates, mn9lRates } = runExperiment(c, [{ rootIds: idsOf('sugar_grns'), rateHz: 100 }], N_TRIALS_CI)
+      const { mn9rRates, mn9lRates, missing } = runExperiment(c, [{ rootIds: idsOf('sugar_grns'), rateHz: 100 }], N_TRIALS_CI)
       const fired = mn9rRates.filter((r) => r > 0).length
       console.log('MN9_r rates:', mn9rRates, 'MN9_l rates:', mn9lRates)
+      // Every requested sugar GRN must resolve to a real node index (exact IDs).
+      expect(missing).toBe(0)
       // Gate: MN9_r fires in every trial (paper: 100% of simulations)
       expect(fired).toBe(N_TRIALS_CI)
+      // Paper Fig 1c: the contralateral (right) MN9 responds to left sugar GRNs.
+      const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length
+      expect(mean(mn9rRates)).toBeGreaterThan(mean(mn9lRates))
     },
     { timeout: 600_000 },
   )
