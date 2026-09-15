@@ -1,0 +1,99 @@
+/**
+ * Connectome graph loading + CSR adjacency construction.
+ *
+ * Data: FlyWire release 783 (Dorkenwald et al. 2024) connections
+ * (syn_count >= 5) + Eckstein et al. 2024 neurotransmitter signs.
+ * Bundled as data/processed/connectome-graph.json.gz by process_connectome.py.
+ */
+import { gunzipSync } from 'node:zlib'
+import { readFileSync } from 'node:fs'
+import { W_SYN_MV } from './lif-params.js'
+
+export interface RawGraph {
+  n_neurons: number
+  n_edges: number
+  pre: number[]
+  post: number[]
+  syn: number[]
+  sign: number[]
+  ids: number[]
+  soma: number[]
+  soma_y: number[]
+  soma_z: number[]
+  type: string[]
+  cls: string[]
+  sub: string[]
+  nt: string[]
+}
+
+/** CSR: out-edges per node. Edge weight = syn_count * sign * W_SYN (mV). */
+export interface Connectome {
+  n: number
+  /** outgoing edges: nodes' slice = off[i]..off[i+1] */
+  off: Int32Array
+  /** target node per out-edge */
+  dst: Int32Array
+  /** weight per out-edge in mV (signed) */
+  w: Float32Array
+  ids: Float64Array
+  idToIdx: Map<number, number>
+  type: string[]
+  cls: string[]
+  sub: string[]
+  nt: string[]
+  soma: Float32Array
+  soma_y: Float32Array
+  soma_z: Float32Array
+}
+
+export function parseGraph(raw: RawGraph): Connectome {
+  const n = raw.n_neurons
+  const off = new Int32Array(n + 1)
+  const E = raw.n_edges
+  // count out-degree
+  for (let e = 0; e < E; e++) off[raw.pre[e] + 1]++
+  // prefix sum
+  for (let i = 0; i < n; i++) off[i + 1] += off[i]
+  const dst = new Int32Array(E)
+  const w = new Float32Array(E)
+  const cursor = off.slice(0, n) // per-node fill cursor
+  for (let e = 0; e < E; e++) {
+    const p = raw.pre[e]
+    const c = cursor[p]++
+    dst[c] = raw.post[e]
+    // Paper Methods: w_j,i = synapse_count_j->i * sign_j * W_SYN
+    w[c] = raw.syn[e] * raw.sign[e] * W_SYN_MV
+  }
+  const idToIdx = new Map<number, number>()
+  for (let i = 0; i < n; i++) idToIdx.set(raw.ids[i], i)
+  return {
+    n,
+    off,
+    dst,
+    w,
+    ids: Float64Array.from(raw.ids),
+    idToIdx,
+    type: raw.type,
+    cls: raw.cls,
+    sub: raw.sub,
+    nt: raw.nt,
+    soma: Float32Array.from(raw.soma),
+    soma_y: Float32Array.from(raw.soma_y),
+    soma_z: Float32Array.from(raw.soma_z),
+  }
+}
+
+export function loadGraphFromGzFile(path: string): Connectome {
+  const buf = readFileSync(path)
+  const json = gunzipSync(buf).toString('utf8')
+  return parseGraph(JSON.parse(json) as RawGraph)
+}
+
+export function rootIdsToIdxs(c: Connectome, rootIds: number[]): number[] {
+  const out: number[] = []
+  for (const r of rootIds) {
+    const i = c.idToIdx.get(r)
+    if (i !== undefined) out.push(i)
+  }
+  return out
+}

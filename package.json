@@ -1,1 +1,5 @@
-{`n  "name": "flylab",`n  "private": true,`n  "packageManager": "pnpm@10.15.1"`n}
+{
+  "name": "flylab",
+  "private": true,
+  "packageManager": "pnpm@10.15.1"
+}
