@@ -6,6 +6,8 @@ dist/
 !.env.example
 .vercel
 coverage/
-# raw data too big for git (keep processed parquet + manifest):
 data/raw/
+data/processed/*.parquet
+data/processed/nt_*.parquet
+packages/sim-core/large/
 
