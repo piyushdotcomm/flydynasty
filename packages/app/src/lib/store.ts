@@ -18,7 +18,16 @@ interface LabState {
   phase: LoadPhase;
   error: string | null;
   selectedId: string | null;
+  /** playback position within the selected trial (ms, 0..durationMs) */
+  playheadMs: number;
+  /** whether the playhead is advancing */
+  playing: boolean;
+  /** show the real-anatomy fly body viewer (flybody meshes) */
+  showFly: boolean;
   setSelected: (id: string | null) => void;
+  setPlayhead: (ms: number) => void;
+  setPlaying: (playing: boolean) => void;
+  setShowFly: (show: boolean) => void;
   setPhase: (phase: LoadPhase, error?: string | null) => void;
 }
 
@@ -26,6 +35,12 @@ export const useLabStore = create<LabState>((set) => ({
   phase: "idle",
   error: null,
   selectedId: null,
-  setSelected: (id) => set({ selectedId: id }),
+  playheadMs: 0,
+  playing: false,
+  setSelected: (id) => set({ selectedId: id, playheadMs: 0, playing: false }),
+  setPlayhead: (ms) => set({ playheadMs: ms }),
+  setPlaying: (playing) => set({ playing }),
+  showFly: false,
+  setShowFly: (showFly) => set({ showFly }),
   setPhase: (phase, error = null) => set({ phase, error }),
 }));

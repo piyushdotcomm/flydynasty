@@ -3,16 +3,85 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { buildBrainPoints, type BrainPoints } from "@/lib/brain-points";
+import { applyTraceGlow, clearTraceGlow, type GlowState } from "@/lib/trace-glow";
+import { buildFlyModel, type FlyModel } from "@/lib/fly-model";
+import { loadTrace } from "@/lib/data";
 import { useLabStore } from "@/lib/store";
 
 /**
  * The real brain: a point cloud of all 139,248 FlyWire neurons at their
  * annotated soma coordinates (FlyWire/FAFB14 nm — see graph-meta.json for the
  * honest coordinate-space note). Drag to orbit, wheel to zoom.
+ *
+ * When a precomputed model run is selected in the experiment dock, the
+ * neurons the REAL model responded with glow amber (rate-weighted), driven
+ * only by the exported trace — playback, not simulation.
  */
 export default function SceneCanvas() {
   const mountRef = useRef<HTMLDivElement>(null);
   const setPhase = useLabStore((s) => s.setPhase);
+  const selectedId = useLabStore((s) => s.selectedId);
+  const glowRef = useRef<GlowState | null>(null);
+  const pointsRef = useRef<THREE.Points | null>(null);
+  const showFly = useLabStore((s) => s.showFly);
+
+  // trace playback: recolor responders of the selected condition
+  useEffect(() => {
+    const points = pointsRef.current;
+    if (!points) return;
+    let cancelled = false;
+    (async () => {
+      // always restore the previous tint first
+      clearTraceGlow(glowRef.current);
+      glowRef.current = null;
+      if (!selectedId) return;
+      try {
+        const entry = { id: selectedId, file: `trace-${selectedId}.json` } as const;
+        const trace = await loadTrace(entry as never);
+        if (cancelled) return;
+        glowRef.current = applyTraceGlow(points, trace);
+      } catch {
+        // a missing/failed trace must not break the scene; dock shows the error
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId]);
+
+  // real fly body viewer (anatomy only, honestly labeled) — mounted on demand
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+    if (!showFly) return;
+    let disposed = false;
+    let fly: FlyModel | null = null;
+    const scene = (mount as HTMLDivElement & { __scene?: THREE.Scene }).__scene;
+    if (!scene) return;
+    (async () => {
+      try {
+        fly = await buildFlyModel();
+        if (disposed) {
+          fly.dispose();
+          return;
+        }
+        // next to the brain, at real scale (the fly is ~2.5 mm; the brain
+        // bundle is in nm — scale the fly up 1000x so both read on camera)
+        fly.group.scale.setScalar(1000);
+        fly.group.position.set(0, -250000, 300000);
+        scene.add(fly.group);
+      } catch {
+        // missing assets must not break the scene
+      }
+    })();
+    return () => {
+      disposed = true;
+      if (fly) {
+        scene.remove(fly.group);
+        fly.dispose();
+      }
+    };
+  }, [showFly]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -69,6 +138,9 @@ export default function SceneCanvas() {
         // positions are already centred on the annotated centroid -> orbit origin
         controls.target.set(0, 0, 0);
         scene.add(brain.points);
+        pointsRef.current = brain.points;
+        // expose the scene for the on-demand fly-body layer
+        (mount as HTMLDivElement & { __scene?: THREE.Scene }).__scene = scene;
         setPhase("ready");
       } catch (err) {
         if (!disposed) setPhase("error", String((err as Error)?.message ?? err));
@@ -100,6 +172,9 @@ export default function SceneCanvas() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       mount.removeEventListener("wheel", onWheel);
+      clearTraceGlow(glowRef.current);
+      glowRef.current = null;
+      pointsRef.current = null;
       brain?.dispose();
       renderer.dispose();
       mount.removeChild(renderer.domElement);

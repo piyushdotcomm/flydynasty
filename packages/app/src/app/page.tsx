@@ -1,8 +1,11 @@
 import ConnectomeLoader from "@/components/ConnectomeLoader";
 import ExperimentDock from "@/components/ExperimentDock";
+import FlyModelToggle from "@/components/FlyModelToggle";
+import NeuronSearch from "@/components/NeuronSearch";
 import SceneCanvas from "@/components/SceneCanvas";
 import StatusCard from "@/components/StatusCard";
 import TopBar from "@/components/TopBar";
+import TracePlayback from "@/components/TracePlayback";
 
 export default function Home() {
   return (
@@ -11,6 +14,9 @@ export default function Home() {
       <ConnectomeLoader />
       <TopBar />
       <ExperimentDock />
+      <TracePlayback />
+      <FlyModelToggle />
+      <NeuronSearch />
       <StatusCard />
     </main>
   );
