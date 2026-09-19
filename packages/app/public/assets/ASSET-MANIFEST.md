@@ -21,6 +21,13 @@ Photogrammetry-grade adult *Drosophila melanogaster* body meshes from the **flyb
 
 Notes: `fruitfly.xml` (65 KB, same assets dir) contains MuJoCo geometry+pose data — useful for assembling/correctly positioning parts. Remaining segment OBJs (abdomen 2–8, legs, antennae, proboscis) available at same URL pattern — see repo tree.
 
+**USED IN PRODUCTION (Stage view):** the full 67-body rig is baked by
+`scripts/pack-fly-meshes.py` (MJCF body × geom transforms + default mesh
+scale 0.1, welded, ground-aligned, y-up) into `fly/fly-meshes.bin.gz`
+(~4.8 MB, 510K welded verts) — loaded at runtime by `lib/fly-model.ts`.
+Proboscis/antennae/wings are separate runtime meshes; the proboscis extends
+with MN9_r spikes from the selected precomputed run (kinematics only).
+
 ### Stylized fallbacks — Poly Pizza (CC-BY 3.0, direct GLB)
 | File | Size | Source | Author | License | Status | Quality |
 |---|---|---|---|---|---|---|
@@ -38,6 +45,7 @@ Notes: `fruitfly.xml` (65 KB, same assets dir) contains MuJoCo geometry+pose dat
 
 | File | Size | Source | Author | License | Status | Quality |
 |---|---|---|---|---|---|---|
+| warm_restaurant_2k.hdr | 6.5 MB | https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/warm_restaurant_2k.hdr | Poly Haven | CC0 | **USED (Stage env map, RGBELoader → PMREM)** | ★★★★★ warm interior, kitchen-adjacent |
 | warm_restaurant_4k.hdr | 25.5 MB | https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/warm_restaurant_4k.hdr | Poly Haven | CC0 | downloaded (MD5 verified 61d44615da982bb70ca36a710bc4966e) | ★★★★★ warm interior, kitchen-adjacent |
 | wooden_lounge_4k.hdr | 25.2 MB | https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/wooden_lounge_4k.hdr | Poly Haven | CC0 | downloaded (MD5 verified 34784f3d0c88c56a319bdfd66f0b072d) | ★★★★★ warm wood interior |
 
@@ -51,9 +59,9 @@ All from ambientCG (CC0). Direct pattern: `https://ambientcg.com/get?file=<Asset
 
 | File | Size | Asset | Purpose | Status | Quality |
 |---|---|---|---|---|---|
-| Wood095_1K-JPG.zip | 3.9 MB | https://ambientcg.com/a/Wood095 | wood counter (clean modern wood) | downloaded | ★★★★★ |
-| Marble012_1K-JPG.zip | 4.7 MB | https://ambientcg.com/a/Marble012 | marble counter | downloaded | ★★★★★ |
-| Metal009_1K-JPG.zip | 4.8 MB | https://ambientcg.com/a/Metal009 | brushed steel appliances | downloaded | ★★★★★ |
+| Wood095_1K-JPG.zip | 3.9 MB | https://ambientcg.com/a/Wood095 | wood counter (clean modern wood) | **USED** (`pbr/wood095/` Color+Normal+Rough → counter) | ★★★★★ |
+| Marble012_1K-JPG.zip | 4.7 MB | https://ambientcg.com/a/Marble012 | marble counter | **USED** (`pbr/marble012/` → backsplash) | ★★★★★ |
+| Metal009_1K-JPG.zip | 4.8 MB | https://ambientcg.com/a/Metal009 | brushed steel appliances | **USED** (`pbr/metal009/` staged for future appliances) | ★★★★★ |
 | Tiles141_1K-JPG.zip | 5.0 MB | https://ambientcg.com/a/Tiles141 | white kitchen/bath backsplash tiles | downloaded | ★★★★★ |
 
 Each zip contains Color/Displacement/Normal/Metalness/Roughness JPGs + USD preview (verified by listing). ambientCG "Kitchen" collection has 116 assets: https://ambientcg.com/list?type=material&collection=Kitchen — more available on demand.
@@ -67,9 +75,9 @@ Poly Pizza GLBs (direct static.poly.pizza URLs above each; all CC-BY 3.0).
 | File | Size | Source | Status | Quality |
 |---|---|---|---|---|
 | banana.glb | 7 KB | poly.pizza/m/ahOO6wz8sV0 (static.poly.pizza/10e92ada-...glb) | downloaded | ★★★ |
-| banana_bundle.glb | 27 KB | poly.pizza/m/1ySgHdwK0q | downloaded | ★★★ |
+| banana_bundle.glb | 27 KB | poly.pizza/m/1ySgHdwK0q | **USED (Stage prop, CC-BY credit)** | ★★★ |
 | strawberry.glb | 17 KB | poly.pizza/m/4W3g1NixX1K | downloaded | ★★★ |
-| strawberries.glb | 212 KB | poly.pizza/m/5n1vYWflaFt | downloaded | ★★★★ cluster, more detail |
+| strawberries.glb | 212 KB | poly.pizza/m/5n1vYWflaFt | **USED (Stage prop, CC-BY credit)** | ★★★★ cluster, more detail |
 
 Pre-existing: kenney_food-kit.zip (4.6 MB, Kenney CC0 food pack) — fallback/stylized options.
 

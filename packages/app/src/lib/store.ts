@@ -22,8 +22,12 @@ interface LabState {
   playheadMs: number;
   /** whether the playhead is advancing */
   playing: boolean;
-  /** show the real-anatomy fly body viewer (flybody meshes) */
-  showFly: boolean;
+  /** scene view: brain point cloud vs the kitchen stage diorama */
+  view: "brain" | "stage";
+  /** fly proboscis extension 0..1 (MN9_r spike level; stage view only) */
+  proboscisLevel: number;
+  /** fly wing buzz 0..1 (arousal garnish; stage view only, honesty-labeled) */
+  wingBuzz: number;
   /** what-if lab: seed group currently running (null = idle) */
   whatIfGroup: string | null;
   /** what-if lab: main-bundle node indices of the responding sub-sim neurons */
@@ -35,7 +39,8 @@ interface LabState {
   setSelected: (id: string | null) => void;
   setPlayhead: (ms: number) => void;
   setPlaying: (playing: boolean) => void;
-  setShowFly: (show: boolean) => void;
+  setView: (view: "brain" | "stage") => void;
+  setFlyBehavior: (proboscisLevel: number, wingBuzz: number) => void;
   setWhatIf: (group: string | null, responders: number[] | null, weights: number[] | null) => void;
   setWhatIfRunning: (running: boolean) => void;
   setPhase: (phase: LoadPhase, error?: string | null) => void;
@@ -50,8 +55,11 @@ export const useLabStore = create<LabState>((set) => ({
   setSelected: (id) => set({ selectedId: id, playheadMs: 0, playing: false }),
   setPlayhead: (ms) => set({ playheadMs: ms }),
   setPlaying: (playing) => set({ playing }),
-  showFly: false,
-  setShowFly: (showFly) => set({ showFly }),
+  view: "brain",
+  setView: (view) => set({ view }),
+  proboscisLevel: 0,
+  wingBuzz: 0,
+  setFlyBehavior: (proboscisLevel, wingBuzz) => set({ proboscisLevel, wingBuzz }),
   whatIfGroup: null,
   whatIfResponders: null,
   whatIfWeights: null,

@@ -1,39 +1,51 @@
 "use client";
 
+import { useRef } from "react";
 import { useLabStore } from "@/lib/store";
 
 /**
- * Toggle for the real-anatomy fly body viewer (TuragaLab/flybody meshes,
- * Apache-2.0 — see public/assets/ASSET-MANIFEST.md). The model is assembled
- * from the published MuJoCo rig poses and shown at real scale next to the
- * connectome point cloud. This is anatomy for context — no dynamics claim:
- * behavior comes only from the precomputed model runs.
+ * View toggle: the brain point cloud (connectome data view) vs the kitchen
+ * stage (photoreal diorama the fly lives in). Both views are honest: the
+ * brain shows the real 139k-neuron cloud; the stage shows real flybody
+ * anatomy in a real-asset environment with model-driven (precomputed)
+ * proboscis playback.
  */
-export default function FlyModelToggle() {
-  const showFly = useLabStore((s) => s.showFly);
-  const setShowFly = useLabStore((s) => s.setShowFly);
+export default function ViewToggle() {
+  const view = useLabStore((s) => s.view);
+  const setView = useLabStore((s) => s.setView);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   return (
-    <div className="pointer-events-auto absolute left-6 top-24 z-20 flex flex-col items-start gap-2">
+    <div
+      className="pointer-events-auto absolute left-6 top-24 z-20 flex overflow-hidden rounded-lg border border-neutral-800 backdrop-blur-md"
+      role="group"
+      aria-label="Scene view"
+    >
       <button
         type="button"
-        aria-pressed={showFly}
-        onClick={() => setShowFly(!showFly)}
-        className={`rounded-lg border px-3 py-1.5 text-xs backdrop-blur-md transition-colors ${
-          showFly
-            ? "border-amber-500 bg-amber-500/15 text-amber-400"
-            : "border-neutral-800 bg-neutral-950/70 text-neutral-300 hover:border-neutral-600 hover:text-foreground"
+        aria-pressed={view === "brain"}
+        onClick={() => setView("brain")}
+        className={`px-3 py-1.5 text-xs transition-colors ${
+          view === "brain"
+            ? "bg-amber-500/15 text-amber-400"
+            : "bg-neutral-950/70 text-neutral-300 hover:text-foreground"
         }`}
       >
-        {showFly ? "Hide real fly body" : "Show real fly body"}
+        Brain
       </button>
-      {showFly && (
-        <p className="max-w-[220px] rounded-md border border-neutral-800/60 bg-neutral-950/70 px-2 py-1 text-[10px] leading-snug text-neutral-500 backdrop-blur-md">
-          Real <em>Drosophila</em> anatomy — flybody meshes (TuragaLab, Apache-2.0)
-          assembled with the published rig poses. Anatomy only: no behavior is
-          claimed for this body.
-        </p>
-      )}
+      <button
+        type="button"
+        aria-pressed={view === "stage"}
+        onClick={() => setView("stage")}
+        className={`border-l border-neutral-800 px-3 py-1.5 text-xs transition-colors ${
+          view === "stage"
+            ? "bg-amber-500/15 text-amber-400"
+            : "bg-neutral-950/70 text-neutral-300 hover:text-foreground"
+        }`}
+      >
+        Stage
+      </button>
     </div>
   );
 }

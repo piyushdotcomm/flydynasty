@@ -9,6 +9,7 @@
     "traces": "tsx pipelines/export_traces.ts",
     "bundle": "tsx pipelines/export_client_bundle.ts",
     "lab": "tsx pipelines/export_lab_bundle.ts",
+    "flypack": "python scripts/pack-fly-meshes.py",
     "export": "pnpm bundle && pnpm traces && pnpm lab",
     "test": "pnpm -r test"
   },

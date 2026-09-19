@@ -57,9 +57,9 @@ const HONESTY_TABLE: {
   },
   {
     thing: "Fly body, environment, lighting",
-    status: "NOT IN THIS BUILD",
+    status: "REAL ASSETS (stage view)",
     detail:
-      "No photoreal fly body or stage assets ship here — the visualization is the point cloud and the model readouts. Nothing decorative is presented as science.",
+      "The Stage view shows the real flybody MuJoCo rig (67 bodies, Vaxenburg et al. 2024) baked with its published transforms, standing in a kitchen diorama lit by a Poly Haven HDRI with ambientCG PBR wood/marble and CC-BY food props. The fly's proboscis extends when MN9_r spikes in the selected run — kinematics of real anatomy driven by model output, no dynamics claim.",
   },
   {
     thing: "Free-roaming autonomous fly behavior",

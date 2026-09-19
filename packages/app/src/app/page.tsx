@@ -1,6 +1,6 @@
 import ConnectomeLoader from "@/components/ConnectomeLoader";
 import ExperimentDock from "@/components/ExperimentDock";
-import FlyModelToggle from "@/components/FlyModelToggle";
+import ViewToggle from "@/components/FlyModelToggle";
 import NeuronSearch from "@/components/NeuronSearch";
 import SceneCanvas from "@/components/SceneCanvas";
 import StatusCard from "@/components/StatusCard";
@@ -16,7 +16,7 @@ export default function Home() {
       <TopBar />
       <ExperimentDock />
       <TracePlayback />
-      <FlyModelToggle />
+      <ViewToggle />
       <NeuronSearch />
       <StatusCard />
       <WhatIfPanel />

@@ -11,17 +11,20 @@ import {
   type SpikePlaybackState,
 } from "@/lib/spike-playback";
 import { buildFlyModel, type FlyModel } from "@/lib/fly-model";
+import { buildStage, placeFlyOnStage, type Stage } from "@/lib/stage";
 import { loadTrace } from "@/lib/data";
 import { useLabStore } from "@/lib/store";
 
 /**
- * The real brain: a point cloud of all 139,248 FlyWire neurons at their
- * annotated soma coordinates (FlyWire/FAFB14 nm — see graph-meta.json for the
- * honest coordinate-space note). Drag to orbit, wheel to zoom.
+ * The scene has two views (docs 04 + 09 §4):
  *
- * When a precomputed model run is selected in the experiment dock, the
- * neurons the REAL model responded with glow amber (rate-weighted), driven
- * only by the exported trace — playback, not simulation.
+ *  - brain (default): the real connectome — 139,248 FlyWire neurons at their
+ *    annotated soma coordinates. Trace/what-if glow + spike playback.
+ *
+ *  - stage: the photoreal kitchen diorama — HDRI-lit counter, PBR wood +
+ *    marble, food props, and the real flybody rig standing on the counter.
+ *    The fly's proboscis extends with MN9_r spikes from the SELECTED RUN
+ *    (playback of precomputed data, labeled on the HUD) — never a live claim.
  */
 export default function SceneCanvas() {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -30,15 +33,17 @@ export default function SceneCanvas() {
   const glowRef = useRef<GlowState | null>(null);
   const playbackRef = useRef<SpikePlaybackState | null>(null);
   const pointsRef = useRef<THREE.Points | null>(null);
-  const showFly = useLabStore((s) => s.showFly);
+  const view = useLabStore((s) => s.view);
   const whatIfResponders = useLabStore((s) => s.whatIfResponders);
   const whatIfWeights = useLabStore((s) => s.whatIfWeights);
   const whatIfGlowRef = useRef<WhatIfGlowState | null>(null);
+  /** the main bootstrap's renderer — the stage needs it for PMREM env baking */
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   // live what-if responders: magenta highlight, applied on top of any trace tint
   useEffect(() => {
     const points = pointsRef.current;
-    if (!points) return;
+    if (!points || view !== "brain") return;
     clearWhatIfGlow(whatIfGlowRef.current);
     whatIfGlowRef.current = null;
     if (!whatIfResponders) return;
@@ -47,16 +52,15 @@ export default function SceneCanvas() {
       clearWhatIfGlow(whatIfGlowRef.current);
       whatIfGlowRef.current = null;
     };
-  }, [whatIfResponders, whatIfWeights]);
+  }, [whatIfResponders, whatIfWeights, view]);
 
-  // trace playback: recolor responders of the selected condition
+  // trace playback: recolor responders of the selected condition (brain view)
   useEffect(() => {
+    if (view !== "brain") return;
     const points = pointsRef.current;
     if (!points) return;
     let disposed = false;
     (async () => {
-      // always restore the previous tint first (both layers, glow last: the
-      // playback snapshot was taken on top of the glow tint)
       clearSpikePlayback(playbackRef.current);
       playbackRef.current = null;
       clearTraceGlow(glowRef.current);
@@ -66,10 +70,7 @@ export default function SceneCanvas() {
         const entry = { id: selectedId, file: `trace-${selectedId}.json` } as const;
         const trace = await loadTrace(entry as never);
         if (disposed) return;
-        // rate-weighted static tint of all responders (the "whole run" view)
         glowRef.current = applyTraceGlow(points, trace);
-        // plus the time-driven canonical-trial playback layer (the "watch it
-        // spike" view): the raster rows glow as the playhead crosses their bins
         playbackRef.current = buildSpikePlayback(points, trace);
       } catch {
         // a missing/failed trace must not break the scene; dock shows the error
@@ -82,42 +83,80 @@ export default function SceneCanvas() {
       clearTraceGlow(glowRef.current);
       glowRef.current = null;
     };
-  }, [selectedId]);
+  }, [selectedId, view]);
 
-  // real fly body viewer (anatomy only, honestly labeled) — mounted on demand
+  // ---- the stage layer: mounted on demand, torn down on view switch
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
-    if (!showFly) return;
+    if (view !== "stage") return;
     let disposed = false;
+    let stage: Stage | null = null;
     let fly: FlyModel | null = null;
-    const scene = (mount as HTMLDivElement & { __scene?: THREE.Scene }).__scene;
-    if (!scene) return;
-    (async () => {
-      try {
-        fly = await buildFlyModel();
-        if (disposed) {
-          fly.dispose();
-          return;
-        }
-        // next to the brain, at real scale (the fly is ~2.5 mm; the brain
-        // bundle is in nm — scale the fly up 1000x so both read on camera)
-        fly.group.scale.setScalar(1000);
-        fly.group.position.set(0, -250000, 300000);
-        scene.add(fly.group);
-      } catch {
-        // missing assets must not break the scene
+
+    // the main bootstrap owns the scene + renderer; wait for it
+    let retries = 0;
+    const wait = window.setInterval(() => {
+      const scene = (mount as HTMLDivElement & { __scene?: THREE.Scene }).__scene;
+      const renderer = rendererRef.current;
+      if (!scene || !renderer) {
+        if (++retries > 100) window.clearInterval(wait); // ~10 s, then give up
+        return;
       }
-    })();
+      window.clearInterval(wait);
+      if (disposed) return;
+
+      (async () => {
+        try {
+          stage = await buildStage(renderer);
+          if (disposed) {
+            stage.dispose();
+            return;
+          }
+          scene.background = stage.root.userData.envMap as THREE.Texture;
+          scene.environment = stage.root.userData.envMap as THREE.Texture;
+          scene.fog = new THREE.FogExp2(0x1a120b, 0.1);
+          scene.add(stage.root);
+
+          fly = await buildFlyModel();
+          if (disposed) {
+            fly.dispose();
+            return;
+          }
+          placeFlyOnStage(fly, stage);
+          scene.add(fly.group);
+          (mount as HTMLDivElement & { __stage?: Stage }).__stage = stage;
+          (mount as HTMLDivElement & { __fly?: FlyModel }).__fly = fly;
+        } catch (err) {
+          // stage assets must not break the app; log loudly in dev
+          console.error("[stage] build failed:", err);
+        }
+      })();
+    }, 100);
+
     return () => {
       disposed = true;
-      if (fly) {
-        scene.remove(fly.group);
+      window.clearInterval(wait);
+      const sc = (mount as HTMLDivElement & { __scene?: THREE.Scene }).__scene;
+      if (fly && sc) {
+        sc.remove(fly.group);
         fly.dispose();
       }
+      if (stage && sc) {
+        sc.remove(stage.root);
+        stage.dispose();
+      }
+      if (sc) {
+        sc.background = null;
+        sc.environment = null;
+        sc.fog = null;
+      }
+      (mount as HTMLDivElement & { __stage?: Stage }).__stage = undefined;
+      (mount as HTMLDivElement & { __fly?: FlyModel }).__fly = undefined;
     };
-  }, [showFly]);
+  }, [view]);
 
+  // ---- main scene bootstrap (runs once)
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -127,17 +166,37 @@ export default function SceneCanvas() {
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x050507);
-    const camera = new THREE.PerspectiveCamera(50, mount.clientWidth / mount.clientHeight, 100, 500000);
+    const camera = new THREE.PerspectiveCamera(50, mount.clientWidth / mount.clientHeight, 0.01, 500000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x050507, 1);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
 
+    // camera control state — two presets, one orbit rig
     const controls = {
       theta: 0.6, phi: 1.15, dist: 300000, target: new THREE.Vector3(),
       dragging: false, lx: 0, ly: 0,
     };
+    // stage presets (units are stage units; fly ≈ 0.24 long)
+    const STAGE_PRESET = {
+      theta: 0.6, phi: 1.25, dist: 0.58, target: new THREE.Vector3(0.0, 0.05, 0.0),
+    };
+    const BRAIN_PRESET = { theta: 0.6, phi: 1.15, dist: 300000, target: new THREE.Vector3() };
+    let viewMode: "brain" | "stage" = "brain";
+
+    const applyPreset = (p: typeof BRAIN_PRESET) => {
+      controls.theta = p.theta;
+      controls.phi = p.phi;
+      controls.dist = p.dist;
+      controls.target.copy(p.target);
+    };
+
     const onDown = (e: PointerEvent) => { controls.dragging = true; controls.lx = e.clientX; controls.ly = e.clientY; };
     const onMove = (e: PointerEvent) => {
       if (!controls.dragging) return;
@@ -148,7 +207,10 @@ export default function SceneCanvas() {
     const onUp = () => { controls.dragging = false; };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      controls.dist = Math.min(700000, Math.max(50000, controls.dist * (1 + Math.sign(e.deltaY) * 0.12)));
+      const factor = 1 + Math.sign(e.deltaY) * 0.12;
+      controls.dist = viewMode === "stage"
+        ? Math.min(2, Math.max(0.12, controls.dist * factor))
+        : Math.min(700000, Math.max(50000, controls.dist * factor));
     };
     mount.addEventListener("pointerdown", onDown);
     window.addEventListener("pointermove", onMove);
@@ -164,17 +226,14 @@ export default function SceneCanvas() {
       );
       camera.lookAt(target);
     };
-    applyCamera();
 
     (async () => {
       try {
         brain = await buildBrainPoints();
         if (disposed) return;
-        // positions are already centred on the annotated centroid -> orbit origin
         controls.target.set(0, 0, 0);
         scene.add(brain.points);
         pointsRef.current = brain.points;
-        // expose the scene for the on-demand fly-body layer
         (mount as HTMLDivElement & { __scene?: THREE.Scene }).__scene = scene;
         setPhase("ready");
       } catch (err) {
@@ -182,19 +241,42 @@ export default function SceneCanvas() {
       }
     })();
 
+    // react to view switches from inside the render loop bootstrap
+    const unsubView = useLabStore.subscribe((s) => {
+      const next = s.view;
+      if (next === viewMode) return;
+      viewMode = next;
+      if (next === "stage") {
+        applyPreset(STAGE_PRESET);
+        if (brain) brain.points.visible = false;
+      } else {
+        applyPreset(BRAIN_PRESET);
+        if (brain) brain.points.visible = true;
+      }
+    });
+
     let frame = 0;
     const animate = () => {
-      // while a what-if sim runs in the worker, throttle rendering (~2 fps):
-      // the LIF model needs the CPU, and software-GL headless/weak-GPU setups
-      // would otherwise starve it (the sim result is the product here)
+      // while a what-if sim runs in the worker, throttle rendering (~2 fps)
       const simRunning = useLabStore.getState().whatIfRunning;
       frame++;
-      if (!simRunning || frame % 30 === 0) {
-        if (!controls.dragging) controls.theta += 0.0008;
-        // time-driven spike playback: glow the neurons spiking at the playhead
-        // (reads the store without subscribing — playback state swaps on select)
-        const pb = playbackRef.current;
-        if (pb) applySpikePlayback(pb, useLabStore.getState().playheadMs);
+      const tick = !simRunning || frame % 30 === 0;
+      if (tick) {
+        if (!controls.dragging) controls.theta += viewMode === "stage" ? 0.0004 : 0.0008;
+        const st = useLabStore.getState();
+        if (viewMode === "brain") {
+          const pb = playbackRef.current;
+          if (pb) applySpikePlayback(pb, st.playheadMs);
+        } else {
+          // stage: drive the fly from model output (playback of precomputed
+          // runs / live what-if results — labeled on the HUD, never a claim)
+          const fly = (mount as HTMLDivElement & { __fly?: FlyModel }).__fly;
+          if (fly) {
+            fly.extendProboscis(st.proboscisLevel);
+            fly.wingBuzz(st.wingBuzz);
+            fly.tick(performance.now());
+          }
+        }
         applyCamera();
         renderer.render(scene, camera);
       }
@@ -213,6 +295,7 @@ export default function SceneCanvas() {
 
     return () => {
       disposed = true;
+      unsubView();
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
       mount.removeEventListener("pointerdown", onDown);
@@ -227,16 +310,24 @@ export default function SceneCanvas() {
       glowRef.current = null;
       pointsRef.current = null;
       brain?.dispose();
+      rendererRef.current = null;
       renderer.dispose();
       mount.removeChild(renderer.domElement);
     };
   }, [setPhase]);
 
+  // hide the brain points in stage view (state-driven; covers the bootstrap
+  // subscription before brain finished loading)
+  useEffect(() => {
+    const points = pointsRef.current;
+    if (points) points.visible = view === "brain";
+  }, [view]);
+
   return (
     <div
       id="scene-canvas"
       ref={mountRef}
-      aria-label="3D view of the FlyWire connectome: every neuron at its real annotated soma position"
+      aria-label="3D view: the FlyWire connectome point cloud, or the kitchen stage with the real fly"
       className="absolute inset-0 h-full w-full"
     />
   );

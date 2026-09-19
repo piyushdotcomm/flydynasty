@@ -11,3 +11,4 @@ data/processed/*.parquet
 packages/sim-core/dist/
 *.tsbuildinfo
 
+assets-src/
