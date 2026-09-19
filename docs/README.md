@@ -60,13 +60,13 @@ evolution sim + serialized narration.
 
 | Phase | Scope | Status |
 |---|---|---|
-| **0 — Reproduction Gate** | Implement Shiu et al. LIF model on real FlyWire data. Success = sugar GRN activation fires MN9 (as in paper); shuffled control fails. No art before this. | `NOT STARTED` |
-| **1 — Real Data ETL** | FlyWire connectivity (Zenodo), NT predictions (Eckstein), annotations (Schlegel), region meshes | `NOT STARTED` |
-| 2 — Replay Engine | Precomputed canonical runs; sparse trace format; browser replay + interpolate | `NOT STARTED` |
-| 3 — Diorama | Photoreal kitchen/stage; real anatomy brain view; real-region glow driven by real traces | `NOT STARTED` |
+| **0 — Reproduction Gate** | Implement Shiu et al. LIF model on real FlyWire data. Success = sugar GRN activation fires MN9 (as in paper); shuffled control fails. No art before this. | ✅ `PLAYABLE` — 3/3 vitest gate tests + 5/5 exported gate checks (see `flylab/packages/app/public/data/gate.json`) |
+| **1 — Real Data ETL** | FlyWire connectivity (Zenodo), NT predictions (Eckstein), annotations (Schlegel), region meshes | ✅ `DONE` — release 783, 15.09M edges / 54.49M synapses, 86/86 seed IDs verified (`flylab/data/DATA-MANIFEST.md`) |
+| 2 — Replay Engine | Precomputed canonical runs; sparse trace format; browser replay + interpolate | ✅ `DONE` — 16 conditions exported (`flylab/pipelines/`), replayed honestly in the browser |
+| 3 — Diorama | Photoreal kitchen/stage; real anatomy brain view; real-region glow driven by real traces | 🚧 `BUILDING` — 139,248-neuron point cloud live, trace-driven responder glow + playback HUD + neuron search + real flybody viewer (anatomy only). Kitchen stage not started. |
 | 4 — Interactive Lab | Click-to-activate/silence neurons (recruited-subgraph live approximation, honestly labeled) | `NOT STARTED` |
 | 5 — Narrator + Clips | Narrate real events, cite papers; daily recap clips | `NOT STARTED` |
-| 6 — Live | Deploy, male CNS courtship chapter, launch | `NOT STARTED` |
+| 6 — Live | Deploy, male CNS courtship chapter, launch | 🚧 site live at https://piyushdotcomm.github.io/flydynasty/ (GitHub Pages); launch tasks remain |
 
 **The Phase 0 rule (revised):** do NOT build any 3D, narrator, or site before the
 model reproduction passes (sugar → MN9). One verified real cascade is the product;

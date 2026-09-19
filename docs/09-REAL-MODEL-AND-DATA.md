@@ -99,7 +99,7 @@ timesteps). Honest strategies — use BOTH, always labeled:
    against precomputed runs for a test battery; display mismatch if any.
 3. Never fake: if compute fails, show "computing…" not a canned animation.
 
-## 6. New Phase 0 (replaces old GA gate)
+## 6. New Phase 0 (replaces old GA gate) — ✅ PASSED 2026-09-15
 
 **Gate: reproduce a published result.**
 1. Download FlyWire connectivity + NT predictions (Zenodo + Eckstein)
@@ -109,6 +109,22 @@ timesteps). Honest strategies — use BOTH, always labeled:
 4. PASS = our implementation matches the paper's Table/figures for sugar,
    bitter-suppression, and grooming cases.
 5. Then, and only then, build the 3D stage around it.
+
+**STATUS: PASSED.** Implementation: `flylab/packages/sim-core/src/lif.ts`
+(every constant cited in `lif-params.ts`), graph = full paper-faithful
+FlyWire release 783 bundle (15,090,883 edges / 54,490,417 synapses, E/I from
+Eckstein top_nt, exact string root IDs — see `data/rebuild_graph.py` for why
+string IDs are mandatory). Results:
+- sugar GRNs @ 100 Hz → MN9_r fires 30/30 trials (86.4 Hz mean), MN9_l 81.5 Hz
+- bitter co-activation suppresses MN9_r: 86.4 → 15.8 Hz (paper Fig 3)
+- shuffled-connectivity control: MN9_r 0 Hz in 5/5 shuffles (paper: 99/100 fail)
+- baseline: 0 spikes across 5 trials (model's own claim, verified)
+- rate sweep: 10 Hz → MN9 silent; 30 Hz → weak; 50–200 Hz → robust (Supp T1A)
+Gate tests: `flylab/packages/sim-core/tests/reproduction.test.ts` (3/3 pass,
+~80 min wall time). Exported checks: `packages/app/public/data/gate.json`
+(5/5 pass). Known open items: 2 superseded Shiu GRN IDs unresolved
+(`data/processed/seed-methodology.md` §5) — single-cell dropout, paper says
+results robust to it.
 
 ## 7. What this pivot kills (do not build)
 
