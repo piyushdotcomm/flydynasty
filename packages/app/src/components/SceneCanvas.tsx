@@ -3,7 +3,13 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { buildBrainPoints, type BrainPoints } from "@/lib/brain-points";
-import { applyTraceGlow, clearTraceGlow, type GlowState } from "@/lib/trace-glow";
+import { applyTraceGlow, clearTraceGlow, applyWhatIfGlow, clearWhatIfGlow, type GlowState, type WhatIfGlowState } from "@/lib/trace-glow";
+import {
+  buildSpikePlayback,
+  applySpikePlayback,
+  clearSpikePlayback,
+  type SpikePlaybackState,
+} from "@/lib/spike-playback";
 import { buildFlyModel, type FlyModel } from "@/lib/fly-model";
 import { loadTrace } from "@/lib/data";
 import { useLabStore } from "@/lib/store";
@@ -22,30 +28,59 @@ export default function SceneCanvas() {
   const setPhase = useLabStore((s) => s.setPhase);
   const selectedId = useLabStore((s) => s.selectedId);
   const glowRef = useRef<GlowState | null>(null);
+  const playbackRef = useRef<SpikePlaybackState | null>(null);
   const pointsRef = useRef<THREE.Points | null>(null);
   const showFly = useLabStore((s) => s.showFly);
+  const whatIfResponders = useLabStore((s) => s.whatIfResponders);
+  const whatIfWeights = useLabStore((s) => s.whatIfWeights);
+  const whatIfGlowRef = useRef<WhatIfGlowState | null>(null);
+
+  // live what-if responders: magenta highlight, applied on top of any trace tint
+  useEffect(() => {
+    const points = pointsRef.current;
+    if (!points) return;
+    clearWhatIfGlow(whatIfGlowRef.current);
+    whatIfGlowRef.current = null;
+    if (!whatIfResponders) return;
+    whatIfGlowRef.current = applyWhatIfGlow(points, whatIfResponders, whatIfWeights ?? []);
+    return () => {
+      clearWhatIfGlow(whatIfGlowRef.current);
+      whatIfGlowRef.current = null;
+    };
+  }, [whatIfResponders, whatIfWeights]);
 
   // trace playback: recolor responders of the selected condition
   useEffect(() => {
     const points = pointsRef.current;
     if (!points) return;
-    let cancelled = false;
+    let disposed = false;
     (async () => {
-      // always restore the previous tint first
+      // always restore the previous tint first (both layers, glow last: the
+      // playback snapshot was taken on top of the glow tint)
+      clearSpikePlayback(playbackRef.current);
+      playbackRef.current = null;
       clearTraceGlow(glowRef.current);
       glowRef.current = null;
       if (!selectedId) return;
       try {
         const entry = { id: selectedId, file: `trace-${selectedId}.json` } as const;
         const trace = await loadTrace(entry as never);
-        if (cancelled) return;
+        if (disposed) return;
+        // rate-weighted static tint of all responders (the "whole run" view)
         glowRef.current = applyTraceGlow(points, trace);
+        // plus the time-driven canonical-trial playback layer (the "watch it
+        // spike" view): the raster rows glow as the playhead crosses their bins
+        playbackRef.current = buildSpikePlayback(points, trace);
       } catch {
         // a missing/failed trace must not break the scene; dock shows the error
       }
     })();
     return () => {
-      cancelled = true;
+      disposed = true;
+      clearSpikePlayback(playbackRef.current);
+      playbackRef.current = null;
+      clearTraceGlow(glowRef.current);
+      glowRef.current = null;
     };
   }, [selectedId]);
 
@@ -147,10 +182,22 @@ export default function SceneCanvas() {
       }
     })();
 
+    let frame = 0;
     const animate = () => {
-      if (!controls.dragging) controls.theta += 0.0008;
-      applyCamera();
-      renderer.render(scene, camera);
+      // while a what-if sim runs in the worker, throttle rendering (~2 fps):
+      // the LIF model needs the CPU, and software-GL headless/weak-GPU setups
+      // would otherwise starve it (the sim result is the product here)
+      const simRunning = useLabStore.getState().whatIfRunning;
+      frame++;
+      if (!simRunning || frame % 30 === 0) {
+        if (!controls.dragging) controls.theta += 0.0008;
+        // time-driven spike playback: glow the neurons spiking at the playhead
+        // (reads the store without subscribing — playback state swaps on select)
+        const pb = playbackRef.current;
+        if (pb) applySpikePlayback(pb, useLabStore.getState().playheadMs);
+        applyCamera();
+        renderer.render(scene, camera);
+      }
       raf = requestAnimationFrame(animate);
     };
     raf = requestAnimationFrame(animate);
@@ -172,6 +219,10 @@ export default function SceneCanvas() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       mount.removeEventListener("wheel", onWheel);
+      clearSpikePlayback(playbackRef.current);
+      playbackRef.current = null;
+      clearWhatIfGlow(whatIfGlowRef.current);
+      whatIfGlowRef.current = null;
       clearTraceGlow(glowRef.current);
       glowRef.current = null;
       pointsRef.current = null;

@@ -5,6 +5,12 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./graph": "./src/graph.ts",
+    "./lif": "./src/lif.ts",
+    "./lif-params": "./src/lif-params.ts"
+  },
   "scripts": {
     "test": "vitest run",
     "build": "tsc -p tsconfig.json",

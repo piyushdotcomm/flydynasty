@@ -6,6 +6,7 @@ import SceneCanvas from "@/components/SceneCanvas";
 import StatusCard from "@/components/StatusCard";
 import TopBar from "@/components/TopBar";
 import TracePlayback from "@/components/TracePlayback";
+import WhatIfPanel from "@/components/WhatIfPanel";
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
       <FlyModelToggle />
       <NeuronSearch />
       <StatusCard />
+      <WhatIfPanel />
     </main>
   );
 }

@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   basePath,
   assetPrefix: basePath || undefined,
   images: { unoptimized: true },
+  // transpile the workspace sim-core package (pure TS sources, no build step):
+  // the what-if worker imports the LIF model directly from packages/sim-core/src
+  transpilePackages: ["@flylab/sim-core"],
 };
 
 export default nextConfig;

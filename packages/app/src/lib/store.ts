@@ -24,10 +24,20 @@ interface LabState {
   playing: boolean;
   /** show the real-anatomy fly body viewer (flybody meshes) */
   showFly: boolean;
+  /** what-if lab: seed group currently running (null = idle) */
+  whatIfGroup: string | null;
+  /** what-if lab: main-bundle node indices of the responding sub-sim neurons */
+  whatIfResponders: number[] | null;
+  /** what-if lab: rate-weighted brightness per responder (parallel to whatIfResponders) */
+  whatIfWeights: number[] | null;
+  /** what-if lab: true while the worker sim runs (scene throttles to give it CPU) */
+  whatIfRunning: boolean;
   setSelected: (id: string | null) => void;
   setPlayhead: (ms: number) => void;
   setPlaying: (playing: boolean) => void;
   setShowFly: (show: boolean) => void;
+  setWhatIf: (group: string | null, responders: number[] | null, weights: number[] | null) => void;
+  setWhatIfRunning: (running: boolean) => void;
   setPhase: (phase: LoadPhase, error?: string | null) => void;
 }
 
@@ -42,5 +52,16 @@ export const useLabStore = create<LabState>((set) => ({
   setPlaying: (playing) => set({ playing }),
   showFly: false,
   setShowFly: (showFly) => set({ showFly }),
+  whatIfGroup: null,
+  whatIfResponders: null,
+  whatIfWeights: null,
+  whatIfRunning: false,
+  setWhatIf: (whatIfGroup, whatIfResponders, whatIfWeights) =>
+    set({
+      whatIfGroup,
+      whatIfResponders: whatIfResponders ?? null,
+      whatIfWeights: whatIfWeights ?? null,
+    }),
+  setWhatIfRunning: (whatIfRunning) => set({ whatIfRunning }),
   setPhase: (phase, error = null) => set({ phase, error }),
 }));

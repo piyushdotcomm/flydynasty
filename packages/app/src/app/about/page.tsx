@@ -68,10 +68,16 @@ const HONESTY_TABLE: {
       "No published model validates open-ended fly life simulation, and none is presented here.",
   },
   {
-    thing: "Interactive what-if simulations",
-    status: "PRECOMPUTED (labeled)",
+    thing: "Precomputed experiment replay",
+    status: "FULL MODEL (offline)",
     detail:
-      "Experiments are full-model runs (all 139,248 neurons) computed offline with exact string root IDs; the browser replays them. It does not live-simulate, and it says so.",
+      "The dock's experiments are full-model runs (all 139,248 neurons) computed offline with exact string root IDs; the browser replays them spike-for-spike from the exported rasters.",
+  },
+  {
+    thing: "What-if lab (interactive experiments)",
+    status: "LIVE APPROXIMATION (labeled)",
+    detail:
+      "The what-if panel runs the same LIF model live in your browser — but on a recruited subgraph (3 hops through connections of ≥3 synapses around the taste seed neurons, ~28.6K neurons of 139K). The panel shows how close this approximation lands against the precomputed full-model run (MN9_r rate + responder capture). Claims come from the full-model runs.",
   },
 ];
 

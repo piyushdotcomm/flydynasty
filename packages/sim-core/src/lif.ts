@@ -13,8 +13,8 @@
 import {
   V_RESTING_MV, V_RESET_MV, V_THRESHOLD_MV, T_MBR_MS,
   T_REFRACTORY_MS, TAU_SYN_MS, T_DLY_MS, TRIAL_MS,
-} from './lif-params.js'
-import type { Connectome } from './graph.js'
+} from './lif-params'
+import type { Connectome } from './graph'
 
 /** Deterministic RNG (mulberry32) — required for reproducible trials. */
 export function mulberry32(seed: number): () => number {
@@ -29,7 +29,12 @@ export function mulberry32(seed: number): () => number {
 
 export interface Stimulus {
   /** root IDs as exact decimal strings (never numbers — see graph.ts) */
-  rootIds: string[]
+  rootIds?: string[]
+  /**
+   * OR: node indices directly (used by the browser what-if worker, which
+   * stimulates the recruited subgraph by index; one of rootIds/idxs required).
+   */
+  idxs?: number[]
   rateHz: number
 }
 
@@ -125,15 +130,23 @@ export class LIFSim {
     for (let s = 0; s < stimuli.length; s++) {
       const idxs: number[] = []
       let missing = 0
-      for (const r of stimuli[s].rootIds) {
-        const i = c.idToIdx.get(r)
-        if (i === undefined) missing++
-        else idxs.push(i)
+      if (stimuli[s].idxs !== undefined) {
+        // index-addressed stimulus (recruited-subgraph worker)
+        for (const i of stimuli[s].idxs!) {
+          if (i < 0 || i >= c.n) missing++
+          else idxs.push(i)
+        }
+      } else {
+        for (const r of stimuli[s].rootIds ?? []) {
+          const i = c.idToIdx.get(r)
+          if (i === undefined) missing++
+          else idxs.push(i)
+        }
       }
       stimNodes.push({ idxs, pPerStep: (stimuli[s].rateHz * DT_MS) / 1000, missing })
     }
     this.lastStimulusCoverage = stimNodes.map((s, i) => ({
-      requested: stimuli[i].rootIds.length,
+      requested: stimuli[i].rootIds?.length ?? stimuli[i].idxs?.length ?? 0,
       stimulated: s.idxs.length,
       missing: s.missing,
     }))

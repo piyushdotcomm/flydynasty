@@ -8,7 +8,8 @@
     "verify-ids": "pnpm --filter @flylab/sim-core verify",
     "traces": "tsx pipelines/export_traces.ts",
     "bundle": "tsx pipelines/export_client_bundle.ts",
-    "export": "pnpm bundle && pnpm traces",
+    "lab": "tsx pipelines/export_lab_bundle.ts",
+    "export": "pnpm bundle && pnpm traces && pnpm lab",
     "test": "pnpm -r test"
   },
   "devDependencies": {

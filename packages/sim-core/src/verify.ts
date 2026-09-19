@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
-import { parseGraph, type RawGraph } from './graph.js'
+import { parseGraph, type RawGraph } from './graph'
 
 /**
  * Cross-language verification of root-ID → node-index resolution.

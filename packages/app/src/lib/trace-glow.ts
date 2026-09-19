@@ -55,6 +55,18 @@ export interface GlowState {
   saved: Float32Array;
 }
 
+function snapshot(colorAttr: THREE.BufferAttribute, indices: ArrayLike<number>): Float32Array {
+  const arr = colorAttr.array as Float32Array;
+  const saved = new Float32Array(indices.length * 3);
+  for (let k = 0; k < indices.length; k++) {
+    const i = indices[k];
+    saved[k * 3] = arr[i * 3];
+    saved[k * 3 + 1] = arr[i * 3 + 1];
+    saved[k * 3 + 2] = arr[i * 3 + 2];
+  }
+  return saved;
+}
+
 /**
  * Apply the selected trace: responders glow amber (rate-weighted when the
  * condition has any responders). Returns null if the trace has no responders
@@ -71,15 +83,8 @@ export function applyTraceGlow(
   const responders = trace.responders;
   if (!responders || responders.count === 0) return null;
 
-  const arr = colorAttr.array as Float32Array;
   // snapshot base colors of exactly the neurons we are about to tint
-  const saved = new Float32Array(responders.count * 3);
-  for (let k = 0; k < responders.count; k++) {
-    const i = responders.i[k];
-    saved[k * 3] = arr[i * 3];
-    saved[k * 3 + 1] = arr[i * 3 + 1];
-    saved[k * 3 + 2] = arr[i * 3 + 2];
-  }
+  const saved = snapshot(colorAttr, responders.i);
 
   // rate-weighted amber when there is dynamic range, flat amber otherwise
   const maxRate = trace.stats.maxMeanRateHz;
@@ -96,12 +101,60 @@ export function applyTraceGlow(
 /** Restore the base colors for the tinted neurons (trace deselected/changed). */
 export function clearTraceGlow(state: GlowState | null): void {
   if (!state) return;
-  const arr = state.colorAttr.array as Float32Array;
-  for (let k = 0; k < state.tintedCount; k++) {
-    const i = state.tinted[k];
-    arr[i * 3] = state.saved[k * 3];
-    arr[i * 3 + 1] = state.saved[k * 3 + 1];
-    arr[i * 3 + 2] = state.saved[k * 3 + 2];
+  restore(colorAttr(state), state.tinted, state.saved);
+}
+
+function colorAttr(state: GlowState): THREE.BufferAttribute {
+  return state.colorAttr;
+}
+
+function restore(colorAttribute: THREE.BufferAttribute, indices: ArrayLike<number>, saved: Float32Array): void {
+  const arr = colorAttribute.array as Float32Array;
+  for (let k = 0; k < indices.length; k++) {
+    const i = indices[k];
+    arr[i * 3] = saved[k * 3];
+    arr[i * 3 + 1] = saved[k * 3 + 1];
+    arr[i * 3 + 2] = saved[k * 3 + 2];
   }
-  state.colorAttr.needsUpdate = true;
+  colorAttribute.needsUpdate = true;
+}
+
+// ---------------------------------------------------------------- what-if ---
+
+/** Highlight state for the live what-if run (magenta layer). */
+export interface WhatIfGlowState {
+  colorAttr: THREE.BufferAttribute;
+  indices: number[];
+  saved: Float32Array;
+}
+
+/**
+ * Tint the live sub-sim's responders magenta, brightness from the worker's
+ * normalized weights. Applied on top of any trace tint (the snapshot captures
+ * whatever is currently displayed, so restore just puts back what was there).
+ */
+export function applyWhatIfGlow(
+  points: THREE.Points,
+  indices: number[],
+  weights: number[],
+): WhatIfGlowState | null {
+  const colorAttr = points.geometry.getAttribute("color") as THREE.BufferAttribute | undefined;
+  if (!colorAttr || indices.length === 0) return null;
+  const magenta = new THREE.Color("#ec4899");
+  const arr = colorAttr.array as Float32Array;
+  const saved = snapshot(colorAttr, indices);
+  for (let k = 0; k < indices.length; k++) {
+    const i = indices[k] * 3;
+    const t = weights[k] ?? 1;
+    arr[i] = magenta.r * t;
+    arr[i + 1] = magenta.g * t;
+    arr[i + 2] = magenta.b * t;
+  }
+  colorAttr.needsUpdate = true;
+  return { colorAttr, indices, saved };
+}
+
+export function clearWhatIfGlow(state: WhatIfGlowState | null): void {
+  if (!state) return;
+  restore(state.colorAttr, state.indices, state.saved);
 }

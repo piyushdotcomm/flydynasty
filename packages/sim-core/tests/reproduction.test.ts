@@ -14,8 +14,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { parseGraph, rootIdsToIdxs, type RawGraph, type Connectome } from '../src/graph.js'
-import { LIFSim } from '../src/lif.js'
+import { parseGraph, rootIdsToIdxs, type RawGraph, type Connectome } from '../src/graph'
+import { LIFSim } from '../src/lif'
 import { gunzipSync } from 'node:zlib'
 
 const here = dirname(fileURLToPath(import.meta.url))

@@ -4,10 +4,12 @@
  * Data: FlyWire release 783 (Dorkenwald et al. 2024) connections
  * (syn_count >= 5) + Eckstein et al. 2024 neurotransmitter signs.
  * Bundled as data/processed/connectome-graph.json.gz by process_connectome.py.
+ *
+ * Pure module: no node:fs / DOM imports, so the browser bundle (the Phase 4
+ * what-if web worker) can import parseGraph directly. File loading lives in
+ * the consumers (pipelines, tests, verify).
  */
-import { gunzipSync } from 'node:zlib'
-import { readFileSync } from 'node:fs'
-import { W_SYN_MV } from './lif-params.js'
+import { W_SYN_MV } from './lif-params'
 
 export interface RawGraph {
   n_neurons: number
@@ -100,12 +102,6 @@ export function parseGraph(raw: RawGraph): Connectome {
     soma_y: Float32Array.from(raw.soma_y),
     soma_z: Float32Array.from(raw.soma_z),
   }
-}
-
-export function loadGraphFromGzFile(path: string): Connectome {
-  const buf = readFileSync(path)
-  const json = gunzipSync(buf).toString('utf8')
-  return parseGraph(JSON.parse(json) as RawGraph)
 }
 
 export function rootIdsToIdxs(c: Connectome, rootIds: string[]): number[] {

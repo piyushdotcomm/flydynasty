@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
-import { parseGraph, type RawGraph } from './graph.js'
-import { LIFSim } from './lif.js'
+import { parseGraph, type RawGraph } from './graph'
+import { LIFSim } from './lif'
 const t0 = Date.now()
 const raw = JSON.parse(gunzipSync(readFileSync('../../data/processed/connectome-graph.json.gz')).toString()) as RawGraph
 const c = parseGraph(raw)
